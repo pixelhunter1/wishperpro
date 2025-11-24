@@ -79,20 +79,19 @@ const createWindow = () => {
   mainWindow.on('close', (event) => {
     console.log('[WINDOW] Main window closing...');
 
-    // On macOS, when user closes the window, we should quit the app
-    // This ensures overlay window is also closed and app doesn't stay in dock
-    if (process.platform === 'darwin') {
-      console.log('[WINDOW] macOS: Closing overlay and quitting app');
+    // When user closes the main window, we should quit the app on all platforms
+    // This ensures overlay window is also closed and app terminates properly
+    console.log(`[WINDOW] ${process.platform}: Closing overlay and quitting app`);
 
-      // Close overlay window first
-      if (overlayWindow && !overlayWindow.isDestroyed()) {
-        overlayWindow.destroy();
-        overlayWindow = null;
-      }
-
-      // Quit the app
-      app.quit();
+    // Close overlay window first
+    if (overlayWindow && !overlayWindow.isDestroyed()) {
+      overlayWindow.destroy();
+      overlayWindow = null;
+      console.log('[WINDOW] Overlay window destroyed');
     }
+
+    // Quit the app (works on all platforms)
+    app.quit();
   });
 };
 

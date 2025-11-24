@@ -143,6 +143,60 @@ ipcMain.handle('copy-to-clipboard', async (_event, text: string) => {
   }
 });
 
+ipcMain.handle('paste-to-active-window', async (_event, text: string) => {
+  try {
+    // Copy text to clipboard first
+    clipboard.writeText(text);
+
+    // Minimize window instead of hiding (less disruptive)
+    if (mainWindow) {
+      mainWindow.minimize();
+    }
+
+    // Wait a bit for window to minimize and focus to return to previous app
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    if (process.platform === 'darwin') {
+      // macOS: Use AppleScript to simulate Cmd+V
+      const { exec } = await import('child_process');
+      const { promisify } = await import('util');
+      const execAsync = promisify(exec);
+
+      await execAsync(`osascript -e 'tell application "System Events" to keystroke "v" using command down'`);
+    } else if (process.platform === 'linux') {
+      // Linux: Use xdotool (needs to be installed)
+      const { exec } = await import('child_process');
+      const { promisify } = await import('util');
+      const execAsync = promisify(exec);
+
+      await execAsync('xdotool key ctrl+v');
+    } else if (process.platform === 'win32') {
+      // Windows: Use PowerShell SendKeys
+      const { exec } = await import('child_process');
+      const { promisify } = await import('util');
+      const execAsync = promisify(exec);
+
+      await execAsync('powershell -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait(\'^v\')"');
+    }
+
+    // Wait a bit before restoring window
+    await new Promise(resolve => setTimeout(resolve, 150));
+
+    // Restore window
+    if (mainWindow) {
+      mainWindow.restore();
+    }
+
+    return { success: true };
+  } catch (error) {
+    // Restore window in case of error
+    if (mainWindow) {
+      mainWindow.restore();
+    }
+    return { success: false, error: (error as Error).message };
+  }
+});
+
 ipcMain.handle('get-transcriptions', async () => {
   try {
     const transcriptions = getTranscriptions();

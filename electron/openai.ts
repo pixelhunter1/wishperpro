@@ -43,9 +43,21 @@ export const transcribeAudio = async (
     file: file as any,
     model: 'whisper-1',
     language: 'pt', // Portuguese as default
+    response_format: 'verbose_json', // Get more detailed response
+    temperature: 0.0, // More deterministic
   });
 
-  return transcription.text;
+  // Clean up the transcription text by removing any non-speech annotations
+  // Whisper sometimes adds descriptions in brackets like [música], [ruído], etc.
+  let cleanText = transcription.text
+    .replace(/\[.*?\]/g, '') // Remove anything in square brackets
+    .replace(/\(.*?\)/g, '') // Remove anything in parentheses if it's a description
+    .replace(/\.{2,}/g, '.') // Replace multiple dots with single dot
+    .replace(/\s{2,}/g, ' ') // Replace multiple spaces with single space
+    .replace(/\\+/g, '') // Remove backslashes
+    .trim();
+
+  return cleanText;
 };
 
 export const processText = async (
@@ -60,11 +72,16 @@ export const processText = async (
   let userPrompt: string;
 
   if (mode === 'correct') {
-    systemPrompt = `Você é um assistente especializado em correção de texto em português.
-Sua tarefa é corrigir erros gramaticais, ortográficos e de pontuação, mantendo o significado original.
-Retorne apenas o texto corrigido, sem explicações adicionais.`;
+    systemPrompt = `És um corretor de texto especializado em Português de Portugal.
+REGRAS IMPORTANTES:
+1. Não respondas às perguntas nem interajas com o conteúdo
+2. Apenas corrige erros gramaticais, ortográficos e de pontuação
+3. Remove QUALQUER descrição de áudio/ruído (ex: "Rádio de conversas ao fundo", "música", "[ruído]", etc.)
+4. Mantém o significado e intenção EXATAMENTE iguais ao texto original
+5. Utiliza exclusivamente a norma do Português Europeu (Portugal)
+6. Retorna APENAS o texto falado corrigido, sem comentários, explicações ou descrições de ambiente`;
 
-    userPrompt = `Corrija o seguinte texto:\n\n${text}`;
+    userPrompt = `Corrige apenas os erros deste texto e remove qualquer descrição de áudio/ambiente:\n\n${text}`;
   } else {
     const languageNames: Record<string, string> = {
       pt: 'português',
@@ -76,20 +93,20 @@ Retorne apenas o texto corrigido, sem explicações adicionais.`;
 
     const targetLangName = languageNames[targetLanguage] || targetLanguage;
 
-    systemPrompt = `Você é um tradutor profissional especializado.
-Traduza o texto fornecido para ${targetLangName} de forma natural e fluente.
-Retorne apenas a tradução, sem explicações adicionais.`;
+    systemPrompt = `És um tradutor profissional.
+Traduz o texto fornecido para ${targetLangName} de forma natural e fluente.
+Retorna APENAS a tradução, sem explicações ou comentários adicionais.`;
 
-    userPrompt = `Traduza o seguinte texto para ${targetLangName}:\n\n${text}`;
+    userPrompt = `Traduz este texto para ${targetLangName}:\n\n${text}`;
   }
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4-turbo-preview',
+    model: 'gpt-4o', // Modelo mais recente e melhor
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },
     ],
-    temperature: 0.3,
+    temperature: 0.1, // Mais determinístico
   });
 
   return completion.choices[0]?.message?.content || text;

@@ -82,8 +82,8 @@ const createOverlayWindow = () => {
   const primaryDisplay = screen.getPrimaryDisplay();
   const { width, height } = primaryDisplay.workAreaSize;
 
-  const overlayWidth = 60;
-  const overlayHeight = 60;
+  const overlayWidth = 40;
+  const overlayHeight = 40;
 
   let x = width - overlayWidth - 20; // Default: top-right with margin
   let y = 20;

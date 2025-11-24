@@ -9,6 +9,7 @@ import { History } from '@/components/History'
 function App() {
   const [mode, setMode] = useState<'correct' | 'translate'>('correct')
   const [targetLanguage, setTargetLanguage] = useState('en')
+  const [hotkey, setHotkey] = useState('CommandOrControl+Shift+R')
 
   // Refs to control recording from global hotkey
   const recorderRef = useRef<{
@@ -25,6 +26,17 @@ function App() {
     } else {
       console.log('✓ electronAPI carregado com sucesso');
     }
+  }, []);
+
+  // Load hotkey from database on mount
+  useEffect(() => {
+    const loadHotkey = async () => {
+      const result = await window.electronAPI.getHotkey();
+      if (result.success && result.hotkey) {
+        setHotkey(result.hotkey);
+      }
+    };
+    loadHotkey();
   }, []);
 
   // Global hotkey listener - works regardless of which tab is active or if app is minimized
@@ -70,6 +82,7 @@ function App() {
           <Recorder
             mode={mode}
             targetLanguage={targetLanguage}
+            hotkey={hotkey}
             ref={recorderRef}
           />
         </div>
@@ -85,6 +98,7 @@ function App() {
             <Recorder
               mode={mode}
               targetLanguage={targetLanguage}
+              hotkey={hotkey}
             />
           </TabsContent>
 
@@ -98,6 +112,7 @@ function App() {
               setMode={setMode}
               targetLanguage={targetLanguage}
               setTargetLanguage={setTargetLanguage}
+              onHotkeyChange={setHotkey}
             />
           </TabsContent>
         </Tabs>

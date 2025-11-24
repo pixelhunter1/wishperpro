@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { Copy, Trash2 } from 'lucide-react';
 
 interface TranscriptionRecord {
   id: number;
@@ -151,36 +152,40 @@ export function History() {
                     <Badge variant={transcription.mode === 'correct' ? 'default' : 'secondary'}>
                       {transcription.mode === 'correct' ? 'Correção' : 'Tradução'}
                     </Badge>
-                    <Badge variant="outline">
-                      {getLanguageName(transcription.language)}
-                    </Badge>
+                    {/* Only show language badge when translating */}
+                    {transcription.mode === 'translate' && (
+                      <Badge variant="outline">
+                        {getLanguageName(transcription.language)}
+                      </Badge>
+                    )}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">
-                      {formatDate(transcription.date)}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteItem(transcription.id)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      ✕
-                    </Button>
-                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {formatDate(transcription.date)}
+                  </span>
                 </div>
 
                 <div className="flex items-start justify-between gap-2">
                   <p className="text-sm flex-1">
                     {transcription.finalText}
                   </p>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => copyToClipboard(transcription.finalText)}
-                  >
-                    Copiar
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => copyToClipboard(transcription.finalText)}
+                      className="h-8 w-8"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => deleteItem(transcription.id)}
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}

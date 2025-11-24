@@ -17,9 +17,10 @@ interface SettingsProps {
   setMode: (mode: 'correct' | 'translate') => void;
   targetLanguage: string;
   setTargetLanguage: (lang: string) => void;
+  onHotkeyChange?: (hotkey: string) => void;
 }
 
-export function Settings({ mode, setMode, targetLanguage, setTargetLanguage }: SettingsProps) {
+export function Settings({ mode, setMode, targetLanguage, setTargetLanguage, onHotkeyChange }: SettingsProps) {
   const [apiKey, setApiKey] = useState('');
   const [hotkey, setHotkey] = useState('');
   const [gptModel, setGptModel] = useState('gpt-4o');
@@ -101,6 +102,10 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage }: S
       const result = await window.electronAPI.saveHotkey(hotkey);
       if (result?.success) {
         toast.success('Atalho guardado com sucesso!');
+        // Notify parent component of hotkey change
+        if (onHotkeyChange) {
+          onHotkeyChange(hotkey);
+        }
       } else {
         throw new Error(result?.error || 'Erro desconhecido');
       }

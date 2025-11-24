@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 interface RecorderProps {
   mode: 'correct' | 'translate';
   targetLanguage: string;
+  hotkey: string;
 }
 
 export interface RecorderHandle {
@@ -15,7 +16,17 @@ export interface RecorderHandle {
   isRecording: () => boolean;
 }
 
-export const Recorder = forwardRef<RecorderHandle, RecorderProps>(({ mode, targetLanguage }, ref) => {
+// Convert Electron hotkey format to readable format
+const formatHotkey = (hotkey: string): string => {
+  return hotkey
+    .replace('CommandOrControl', 'Cmd')
+    .replace('Command', 'Cmd')
+    .replace('Control', 'Ctrl')
+    .replace('Shift', 'Shift')
+    .replace('+', '+');
+};
+
+export const Recorder = forwardRef<RecorderHandle, RecorderProps>(({ mode, targetLanguage, hotkey }, ref) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [transcribedText, setTranscribedText] = useState('');
@@ -335,38 +346,59 @@ export const Recorder = forwardRef<RecorderHandle, RecorderProps>(({ mode, targe
         <CardTitle>Gravação de Áudio</CardTitle>
         <CardDescription>
           <strong>Mouse:</strong> Mantenha o botão pressionado enquanto fala<br />
-          <strong>Teclado (Cmd+Shift+R):</strong> Pressione para iniciar, pressione novamente para parar
+          <strong>Teclado ({formatHotkey(hotkey)}):</strong> Pressione para iniciar, pressione novamente para parar
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex justify-center">
-          <Button
-            size="lg"
-            className="h-24 w-24 rounded-full"
-            onMouseDown={startRecording}
-            onMouseUp={stopRecording}
-            onMouseLeave={() => isRecording && stopRecording()}
-            onTouchStart={startRecording}
-            onTouchEnd={stopRecording}
-            disabled={isProcessing}
-          >
-            {isRecording ? (
-              <div className="flex flex-col items-center gap-2">
-                <div className="h-3 w-3 rounded-full bg-red-500 animate-pulse" />
-                <span className="text-xs">A gravar</span>
-              </div>
-            ) : isProcessing ? (
-              <div className="flex flex-col items-center gap-2">
-                <div className="h-3 w-3 rounded-full bg-yellow-500 animate-spin" />
-                <span className="text-xs">A processar</span>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center gap-2">
-                <div className="h-8 w-8 rounded-full bg-primary" />
-                <span className="text-xs">Pressionar</span>
-              </div>
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            {/* Animated ring when recording */}
+            {isRecording && (
+              <div className="absolute inset-0 rounded-full animate-ping bg-red-400 opacity-75" />
             )}
-          </Button>
+            <button
+              className={`relative h-24 w-24 rounded-full transition-all duration-200 ${
+                isRecording
+                  ? 'bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/50'
+                  : isProcessing
+                  ? 'bg-yellow-500 hover:bg-yellow-600 shadow-lg shadow-yellow-500/50'
+                  : 'bg-primary hover:bg-primary/90'
+              }`}
+              onMouseDown={startRecording}
+              onMouseUp={stopRecording}
+              onMouseLeave={() => isRecording && stopRecording()}
+              onTouchStart={startRecording}
+              onTouchEnd={stopRecording}
+              disabled={isProcessing}
+            >
+              <div className="flex items-center justify-center h-full">
+                {isRecording ? (
+                  <svg className="w-8 h-8 text-white animate-pulse" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                    <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                  </svg>
+                ) : isProcessing ? (
+                  <svg className="w-8 h-8 text-white animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                  </svg>
+                ) : (
+                  <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                    <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                  </svg>
+                )}
+              </div>
+            </button>
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-medium text-foreground">
+              {isRecording ? 'A gravar...' : isProcessing ? 'A processar...' : 'Pronto para gravar'}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {isRecording ? 'Solte para parar' : isProcessing ? 'Aguarde' : 'Pressione e segure'}
+            </p>
+          </div>
         </div>
 
         {transcribedText && (

@@ -2,12 +2,20 @@
   "name": "wishperpro",
   "private": true,
   "version": "1.0.0",
+  "description": "AI-powered voice transcription with smart auto-paste",
+  "author": {
+    "name": "WishperPro",
+    "email": "support@wishperpro.app"
+  },
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build && electron-builder",
     "build:dir": "tsc -b && vite build && electron-builder --dir",
+    "build:all": "tsc -b && vite build && electron-builder --mac --win --linux",
+    "build:win": "tsc -b && vite build && electron-builder --win",
+    "build:linux": "tsc -b && vite build && electron-builder --linux",
     "lint": "eslint .",
     "preview": "vite preview",
     "postinstall": "electron-rebuild"
@@ -29,9 +37,9 @@
         "zip"
       ],
       "extendInfo": {
-        "NSMicrophoneUsageDescription": "WishperPro precisa de acesso ao microfone para transcrever áudio.",
-        "NSCameraUsageDescription": "WishperPro não usa câmera, mas pode ser solicitado pelo sistema.",
-        "NSAppleEventsUsageDescription": "WishperPro precisa de permissão para colar texto automaticamente em outras aplicações.",
+        "NSMicrophoneUsageDescription": "WishperPro needs microphone access to transcribe audio.",
+        "NSCameraUsageDescription": "WishperPro does not use the camera, but may be requested by the system.",
+        "NSAppleEventsUsageDescription": "WishperPro needs permission to automatically paste text into other applications.",
         "LSBackgroundOnly": false
       },
       "hardenedRuntime": true,

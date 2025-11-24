@@ -345,12 +345,21 @@ ipcMain.handle('paste-to-active-window', async (_event, text: string) => {
       // Wait a bit to ensure paste completes
       await new Promise(resolve => setTimeout(resolve, 100));
     } else if (process.platform === 'linux') {
-      // Linux: Use xdotool
+      // Linux: Use xdotool (requires xdotool to be installed)
       const { exec } = await import('child_process');
       const { promisify } = await import('util');
       const execAsync = promisify(exec);
 
-      await execAsync('xdotool key ctrl+v');
+      try {
+        // Check if xdotool is installed
+        await execAsync('which xdotool');
+        await execAsync('xdotool key ctrl+v');
+        console.log('[PASTE] Paste command sent via xdotool');
+      } catch (xdotoolError) {
+        console.warn('[PASTE] xdotool not found. Text has been copied to clipboard only.');
+        console.warn('[PASTE] Install xdotool with: sudo apt-get install xdotool');
+        // Text is already in clipboard, so just return success
+      }
     } else if (process.platform === 'win32') {
       // Windows: Use PowerShell SendKeys
       const { exec } = await import('child_process');

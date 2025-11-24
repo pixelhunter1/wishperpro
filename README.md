@@ -9,6 +9,8 @@
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://reactjs.org/)
 [![OpenAI](https://img.shields.io/badge/OpenAI-Whisper%20%2B%20GPT--4-412991?logo=openai)](https://openai.com/)
 
+[Download for macOS](https://github.com/pixelhunter1/wishperpro/releases) • [Download for Windows](https://github.com/pixelhunter1/wishperpro/releases) • [Download for Linux](https://github.com/pixelhunter1/wishperpro/releases)
+
 </div>
 
 ---
@@ -66,17 +68,52 @@ Perfect for:
 
 ## 🚀 Getting Started
 
-### Prerequisites
+### Download & Install
 
-- **Node.js** 18+ and npm
-- **OpenAI API Key** (get one at [platform.openai.com](https://platform.openai.com/api-keys))
-- **macOS** 12+, **Windows** 10+, or **Linux**
+Choose the installer for your operating system from the [Releases page](https://github.com/pixelhunter1/wishperpro/releases):
 
-### Installation
+#### **macOS** (Apple Silicon/M1/M2/M3)
+1. Download `WishperPro-1.0.0-arm64.dmg`
+2. Open the DMG file
+3. Drag WishperPro to Applications folder
+4. Launch WishperPro from Applications
+5. If you see "WishperPro can't be opened" → Right-click → Open → Open
+
+#### **Windows** (10/11)
+**Option A: Installer (Recommended)**
+1. Download `WishperPro Setup 1.0.0.exe`
+2. Run the installer
+3. Follow the installation wizard
+4. Launch WishperPro from Start Menu
+
+**Option B: Portable**
+1. Download `WishperPro 1.0.0.exe`
+2. Run directly (no installation required)
+3. Create a desktop shortcut if desired
+
+#### **Linux** (Ubuntu/Debian/Fedora)
+**Option A: AppImage (Universal)**
+1. Download `WishperPro-1.0.0-arm64.AppImage`
+2. Make it executable: `chmod +x WishperPro-1.0.0-arm64.AppImage`
+3. Run: `./WishperPro-1.0.0-arm64.AppImage`
+4. **Important**: Install xdotool for auto-paste: `sudo apt-get install xdotool`
+
+**Option B: Debian/Ubuntu Package**
+1. Download `wishperpro_1.0.0_arm64.deb`
+2. Install: `sudo dpkg -i wishperpro_1.0.0_arm64.deb`
+3. Fix dependencies if needed: `sudo apt-get install -f`
+4. **Important**: Install xdotool: `sudo apt-get install xdotool`
+5. Launch from Applications menu or run `wishperpro`
+
+---
+
+### For Developers
+
+If you want to build from source:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/wishperpro.git
+git clone https://github.com/pixelhunter1/wishperpro.git
 cd wishperpro
 
 # Install dependencies
@@ -84,6 +121,9 @@ npm install
 
 # Run in development mode
 npm run dev
+
+# Build for all platforms
+npm run build:all
 ```
 
 ### Initial Setup
@@ -247,13 +287,20 @@ npm run lint
 ### Building
 
 ```bash
-# TypeScript compilation
-npm run build
+# Build for current platform only
+npm run build        # Full build with installers
+npm run build:dir    # Faster, directory only (no installers)
 
-# Electron builder (creates installers)
-npm run build:dir  # Faster, no installers
-npm run build      # Full build with installers
+# Build for specific platforms (cross-platform)
+npm run build:all    # Build for macOS, Windows, and Linux
+npm run build:win    # Build for Windows only
+npm run build:linux  # Build for Linux only
 ```
+
+**Note:** Cross-platform builds may require additional setup:
+- **Building for Windows on macOS/Linux**: Works out of the box
+- **Building for Linux on macOS**: Requires Docker
+- For best results, use platform-specific builds or CI/CD (GitHub Actions)
 
 ### Database Location
 
@@ -273,9 +320,23 @@ npm run build      # Full build with installers
 
 ### Auto-Paste Not Working
 
-- Ensure you've granted Accessibility permissions (macOS)
-- Check that the target application accepts clipboard input
-- Try clicking in the text field before recording
+**macOS:**
+- Ensure you've granted Accessibility permissions
+- System Preferences → Security & Privacy → Accessibility → Enable WishperPro
+
+**Windows:**
+- Auto-paste uses PowerShell SendKeys (built-in, no setup required)
+- Ensure the target application is active and accepts keyboard input
+
+**Linux:**
+- Auto-paste requires `xdotool` to be installed
+- Install with: `sudo apt-get install xdotool` (Debian/Ubuntu)
+- Or: `sudo yum install xdotool` (Fedora/RHEL)
+- If xdotool is not installed, text will be copied to clipboard only
+
+**General:**
+- Ensure the target application accepts clipboard/keyboard input
+- Click in the text field before recording for best results
 
 ### API Key Errors
 

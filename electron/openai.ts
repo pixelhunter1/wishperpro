@@ -100,10 +100,11 @@ export const transcribeAudio = async (
     /^transcrição em português/i, // Prompt echo detection
     /^transcrição/i, // Partial prompt echo
     // Common question hallucinations (Whisper often generates random questions on short audio)
-    /^o que (é que|você|tu|vocês)/i, // "O que é que..." patterns
-    /^(como|quando|onde) (é que|você|tu)/i,
-    /^por ?que (é que|você|tu)/i,
-    /^qual (é|o|a)/i,
+    /^o que (é|são|seria|foi)/i, // "O que é...", "O que é isso?", "O que são..."
+    /^(como|quando|onde|porque|porquê) (é|são|está|estava)/i,
+    /^qual (é|são|foi|seria)/i,
+    // Very short questions (typical hallucinations)
+    /^.{0,20}\?$/i, // Any text shorter than 20 chars ending with ?
   ];
 
   for (const pattern of commonHallucinations) {
@@ -231,10 +232,11 @@ export const transcribeAudioStream = async (
     /^transcrição em português/i, // Prompt echo detection
     /^transcrição/i, // Partial prompt echo
     // Common question hallucinations
-    /^o que (é que|você|tu|vocês)/i,
-    /^(como|quando|onde) (é que|você|tu)/i,
-    /^por ?que (é que|você|tu)/i,
-    /^qual (é|o|a)/i,
+    /^o que (é|são|seria|foi)/i, // "O que é...", "O que é isso?", "O que são..."
+    /^(como|quando|onde|porque|porquê) (é|são|está|estava)/i,
+    /^qual (é|são|foi|seria)/i,
+    // Very short questions (typical hallucinations)
+    /^.{0,20}\?$/i, // Any text shorter than 20 chars ending with ?
   ];
 
   for (const pattern of commonHallucinations) {

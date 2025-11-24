@@ -74,37 +74,56 @@ function App() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="mx-auto max-w-4xl space-y-6">
-        <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold">WishperPro</h1>
-          <p className="text-muted-foreground">
-            Transcribe, correct and translate using your voice
-          </p>
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+        <div className="mx-auto max-w-3xl px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
+                <svg className="h-5 w-5 text-primary-foreground" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                  <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                </svg>
+              </div>
+              <div>
+                <h1 className="text-lg font-semibold tracking-tight">WishperPro</h1>
+                <p className="text-xs text-muted-foreground">Voice transcription & translation</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md font-mono">
+                {hotkey.replace('CommandOrControl', 'Cmd').replace('+', ' + ')}
+              </span>
+            </div>
+          </div>
         </div>
+      </header>
 
-        {/* Recorder always mounted but hidden - needed for global hotkey to work */}
-        <div style={{ display: 'none' }}>
-          <Recorder
-            mode={mode}
-            targetLanguage={targetLanguage}
-            sourceLanguage={sourceLanguage}
-            hotkey={hotkey}
-            ref={recorderRef}
-          />
-        </div>
+      {/* Recorder always mounted but hidden - needed for global hotkey to work */}
+      <div style={{ display: 'none' }}>
+        <Recorder
+          mode={mode}
+          targetLanguage={targetLanguage}
+          sourceLanguage={sourceLanguage}
+          hotkey={hotkey}
+          ref={recorderRef}
+        />
+      </div>
 
+      {/* Main Content */}
+      <main className="mx-auto max-w-3xl px-6 py-6">
         <Tabs defaultValue="history" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="history">History</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 h-11">
+            <TabsTrigger value="history" className="text-sm">History</TabsTrigger>
+            <TabsTrigger value="settings" className="text-sm">Settings</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="history" className="mt-6">
+          <TabsContent value="history" className="mt-5">
             <History />
           </TabsContent>
 
-          <TabsContent value="settings" className="mt-6">
+          <TabsContent value="settings" className="mt-5">
             <Settings
               mode={mode}
               setMode={setMode}
@@ -116,7 +135,7 @@ function App() {
             />
           </TabsContent>
         </Tabs>
-      </div>
+      </main>
 
       <Toaster />
     </div>

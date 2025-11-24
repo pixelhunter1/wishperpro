@@ -14,6 +14,8 @@ const createWindow = () => {
   mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
+    show: true,
+    skipTaskbar: false, // Ensure app appears in dock/taskbar
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -27,6 +29,12 @@ const createWindow = () => {
     mainWindow.webContents.openDevTools();
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+  }
+
+  // Explicitly show the window and ensure it appears in dock (macOS)
+  mainWindow.show();
+  if (process.platform === 'darwin' && app.dock) {
+    app.dock.show();
   }
 
   // Create menu with DevTools option
@@ -60,17 +68,12 @@ const createWindow = () => {
   const menu = Menu.buildFromTemplate(template);
   Menu.setApplicationMenu(menu);
 
-  // Intercept minimize event and hide instead
-  // This keeps the renderer process active for recording
-  mainWindow.on('minimize', (event) => {
-    event.preventDefault();
-    mainWindow?.hide();
-    console.log('[WINDOW] Window hidden instead of minimized (keeps renderer active)');
-  });
-
-  // When clicking on dock icon, show the window again
+  // When clicking on dock icon, restore the window if minimized
   app.on('activate', () => {
-    if (mainWindow && !mainWindow.isVisible()) {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) {
+        mainWindow.restore();
+      }
       mainWindow.show();
     }
   });
@@ -188,13 +191,25 @@ const registerHotkey = () => {
 app.whenReady().then(() => {
   initDatabase();
   createWindow();
-  createOverlayWindow();
-  registerHotkey();
+
+  // Wait for main window to be ready before creating overlay
+  // This ensures proper dock icon display on macOS
+  if (mainWindow) {
+    mainWindow.once('ready-to-show', () => {
+      console.log('[APP] Main window ready, creating overlay');
+      createOverlayWindow();
+      registerHotkey();
+    });
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
-      createOverlayWindow();
+      if (mainWindow) {
+        mainWindow.once('ready-to-show', () => {
+          createOverlayWindow();
+        });
+      }
     }
   });
 });

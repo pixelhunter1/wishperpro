@@ -19,6 +19,7 @@ export function Recorder({ mode, targetLanguage }: RecorderProps) {
   const audioChunksRef = useRef<Blob[]>([]);
   const isRecordingRef = useRef(false); // Track recording state without triggering re-renders
   const isProcessingRef = useRef(false); // Prevent duplicate processing
+  const recordingStartTimeRef = useRef<number>(0); // Track recording duration
 
   // Register hotkey listener ONCE on mount, not on every state change
   useEffect(() => {
@@ -33,11 +34,12 @@ export function Recorder({ mode, targetLanguage }: RecorderProps) {
 
     if (window.electronAPI?.onToggleRecording) {
       console.log('[RECORDER] Registering hotkey listener (once on mount)');
-      window.electronAPI.onToggleRecording(handleToggle);
+      const cleanup = window.electronAPI.onToggleRecording(handleToggle);
 
-      // Cleanup on unmount
+      // Cleanup on unmount - properly remove the IPC listener
       return () => {
         console.log('[RECORDER] Removing hotkey listener on unmount');
+        if (cleanup) cleanup();
       };
     }
   }, []); // Empty deps = runs once on mount
@@ -92,11 +94,27 @@ export function Recorder({ mode, targetLanguage }: RecorderProps) {
 
       mediaRecorder.onstop = async () => {
         console.log('[RECORDER] MediaRecorder stopped, chunks count:', audioChunksRef.current.length);
+
+        // Check if we have any chunks before processing
+        if (audioChunksRef.current.length === 0) {
+          console.log('[RECORDER] No audio chunks collected, skipping processing');
+          stream.getTracks().forEach(track => track.stop());
+          return;
+        }
+
         const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType });
         console.log('[RECORDER] Audio blob created:', audioBlob.size, 'bytes, type:', audioBlob.type);
 
-        // Process audio BEFORE clearing chunks (to avoid race conditions)
-        await processAudio(audioBlob);
+        // Only process if we have meaningful data (>3KB for ~1 second of audio)
+        if (audioBlob.size > 3000) {
+          // Process audio BEFORE clearing chunks (to avoid race conditions)
+          await processAudio(audioBlob);
+        } else {
+          console.log('[RECORDER] Audio blob too small, likely corrupted or too short');
+          if (audioBlob.size > 0) {
+            toast.error('Áudio muito curto ou corrompido. Por favor, tente novamente.');
+          }
+        }
 
         // Clear audio chunks after processing to prevent contamination of next recording
         audioChunksRef.current = [];
@@ -109,6 +127,7 @@ export function Recorder({ mode, targetLanguage }: RecorderProps) {
       mediaRecorder.start();
       setIsRecording(true);
       isRecordingRef.current = true; // Sync ref with state
+      recordingStartTimeRef.current = Date.now(); // Track when recording started
       console.log('[RECORDER] Recording started successfully');
     } catch (error) {
       console.error('[RECORDER] Error starting recording:', error);
@@ -128,8 +147,25 @@ export function Recorder({ mode, targetLanguage }: RecorderProps) {
   };
 
   const stopRecording = () => {
-    console.log('[RECORDER] stopRecording called, isRecording:', isRecording);
-    if (mediaRecorderRef.current && isRecording) {
+    console.log('[RECORDER] stopRecording called, isRecordingRef:', isRecordingRef.current);
+    // Use ref instead of state for checking, as state may be stale in hotkey handler
+    if (mediaRecorderRef.current && isRecordingRef.current) {
+      // Check if recording was too short (less than 500ms)
+      const recordingDuration = Date.now() - recordingStartTimeRef.current;
+      console.log('[RECORDER] Recording duration:', recordingDuration, 'ms');
+
+      if (recordingDuration < 500) {
+        console.log('[RECORDER] Recording too short, cancelling');
+        // Stop recording but don't process
+        mediaRecorderRef.current.stop();
+        setIsRecording(false);
+        isRecordingRef.current = false;
+        // Clear chunks to prevent processing
+        audioChunksRef.current = [];
+        toast.warning('Gravação muito curta. Mantenha pressionado por mais tempo.');
+        return;
+      }
+
       mediaRecorderRef.current.stop();
       setIsRecording(false);
       isRecordingRef.current = false; // Sync ref with state
@@ -147,14 +183,6 @@ export function Recorder({ mode, targetLanguage }: RecorderProps) {
     try {
       isProcessingRef.current = true; // Mark as processing
       setIsProcessing(true);
-
-      // Check minimum audio size (at least 1KB = 1000 bytes)
-      // WebM audio is highly compressed, so even 1-2 seconds can be < 5KB
-      if (audioBlob.size < 1000) {
-        console.log('[RECORDER] Audio too short:', audioBlob.size, 'bytes');
-        toast.error('Áudio muito curto. Por favor, grave pelo menos 1 segundo de fala.');
-        return;
-      }
 
       console.log('[RECORDER] Processing audio blob:', {
         size: audioBlob.size,

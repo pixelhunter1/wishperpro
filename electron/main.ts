@@ -25,8 +25,6 @@ const createWindow = () => {
     mainWindow.webContents.openDevTools();
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
-    // TEMPORARY: Open DevTools in production for debugging microphone issue
-    mainWindow.webContents.openDevTools();
   }
 
   // Create menu with DevTools option

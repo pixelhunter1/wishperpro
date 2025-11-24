@@ -18,5 +18,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   clearAllTranscriptions: () => ipcRenderer.invoke('clear-all-transcriptions'),
   onToggleRecording: (callback) => {
     ipcRenderer.on('toggle-recording', callback);
+    // Return cleanup function to remove listener
+    return () => {
+      ipcRenderer.removeListener('toggle-recording', callback);
+    };
   },
 });

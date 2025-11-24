@@ -27,7 +27,7 @@ export interface ElectronAPI {
   getTranscriptions: () => Promise<{ success: boolean; transcriptions?: TranscriptionRecord[]; error?: string }>;
   deleteTranscription: (id: number) => Promise<{ success: boolean; error?: string }>;
   clearAllTranscriptions: () => Promise<{ success: boolean; error?: string }>;
-  onToggleRecording: (callback: () => void) => void;
+  onToggleRecording: (callback: () => void) => () => void;
 }
 
 declare global {

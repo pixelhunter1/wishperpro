@@ -1,16 +1,24 @@
 import { useState, useEffect, useRef } from 'react'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Toaster } from '@/components/ui/sonner'
 import { toast } from 'sonner'
 import { Recorder } from '@/components/Recorder'
 import { Settings } from '@/components/Settings'
 import { History } from '@/components/History'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 
 function App() {
   const [mode, setMode] = useState<'correct' | 'translate'>('correct')
   const [targetLanguage, setTargetLanguage] = useState('en')
   const [sourceLanguage, setSourceLanguage] = useState('pt')
   const [hotkey, setHotkey] = useState('CommandOrControl+Shift+R')
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   // Refs to control recording from global hotkey
   const recorderRef = useRef<{
@@ -77,24 +85,49 @@ function App() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="mx-auto max-w-3xl px-6 py-4">
+        <div className="mx-auto max-w-3xl px-6 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-                <svg className="h-5 w-5 text-primary-foreground" fill="currentColor" viewBox="0 0 24 24">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+                <svg className="h-4 w-4 text-primary-foreground" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
                   <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
                 </svg>
               </div>
               <div>
-                <h1 className="text-lg font-semibold tracking-tight">WishperPro</h1>
-                <p className="text-xs text-muted-foreground">Voice transcription & translation</p>
+                <h1 className="text-base font-semibold tracking-tight">WishperPro</h1>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md font-mono">
                 {hotkey.replace('CommandOrControl', 'Cmd').replace('+', ' + ')}
               </span>
+
+              {/* Settings Button */}
+              <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md w-[calc(100%-2rem)] max-h-[80vh] overflow-y-auto p-5">
+                  <DialogHeader>
+                    <DialogTitle>Settings</DialogTitle>
+                  </DialogHeader>
+                  <Settings
+                    mode={mode}
+                    setMode={setMode}
+                    targetLanguage={targetLanguage}
+                    setTargetLanguage={setTargetLanguage}
+                    sourceLanguage={sourceLanguage}
+                    setSourceLanguage={setSourceLanguage}
+                    onHotkeyChange={setHotkey}
+                  />
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
         </div>
@@ -111,30 +144,9 @@ function App() {
         />
       </div>
 
-      {/* Main Content */}
-      <main className="mx-auto max-w-3xl px-6 py-6">
-        <Tabs defaultValue="history" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 h-11">
-            <TabsTrigger value="history" className="text-sm">History</TabsTrigger>
-            <TabsTrigger value="settings" className="text-sm">Settings</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="history" className="mt-5">
-            <History />
-          </TabsContent>
-
-          <TabsContent value="settings" className="mt-5">
-            <Settings
-              mode={mode}
-              setMode={setMode}
-              targetLanguage={targetLanguage}
-              setTargetLanguage={setTargetLanguage}
-              sourceLanguage={sourceLanguage}
-              setSourceLanguage={setSourceLanguage}
-              onHotkeyChange={setHotkey}
-            />
-          </TabsContent>
-        </Tabs>
+      {/* Main Content - History */}
+      <main className="mx-auto max-w-3xl px-6 py-5">
+        <History />
       </main>
 
       <Toaster />

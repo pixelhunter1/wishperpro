@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -182,59 +181,38 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage, sou
   };
 
   return (
-    <div className="space-y-6">
-      {/* API Configuration */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-base">API Configuration</CardTitle>
-          <CardDescription className="text-sm">Connect your OpenAI account</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="apiKey" className="text-sm font-medium">API Key</Label>
-            <div className="flex gap-2">
-              <Input
-                id="apiKey"
-                type="password"
-                placeholder="sk-..."
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                disabled={isLoading}
-                className="h-9"
-              />
-              <Button onClick={saveApiKey} disabled={isLoading || !apiKey} size="sm" className="h-9 px-4">
-                Save
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Get your key at{' '}
-              <a
-                href="https://platform.openai.com/api-keys"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline"
-              >
-                platform.openai.com
-              </a>
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="space-y-4">
+      {/* API Key */}
+      <div className="space-y-2">
+        <Label htmlFor="apiKey" className="text-sm font-medium">OpenAI API Key</Label>
+        <div className="flex gap-2">
+          <Input
+            id="apiKey"
+            type="password"
+            placeholder="sk-..."
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            disabled={isLoading}
+            className="h-8 text-sm"
+          />
+          <Button onClick={saveApiKey} disabled={isLoading || !apiKey} size="sm" className="h-8 px-3 text-xs">
+            Save
+          </Button>
+        </div>
+      </div>
+
+      <div className="h-px bg-border" />
 
       {/* Language Settings */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-base">Language Settings</CardTitle>
-          <CardDescription className="text-sm">Configure speech and translation preferences</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          <div className="space-y-2">
+      <div className="space-y-3">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
             <Label className="text-sm font-medium">Source Language</Label>
             <Select value={sourceLanguage} onValueChange={handleSourceLanguageChange} disabled={isLoading}>
-              <SelectTrigger className="h-9">
+              <SelectTrigger className="h-8 text-sm">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent side="bottom" className="max-h-[280px]">
+              <SelectContent side="bottom" className="max-h-[180px]">
                 <SelectItem value="pt">Portuguese</SelectItem>
                 <SelectItem value="en">English</SelectItem>
                 <SelectItem value="es">Spanish</SelectItem>
@@ -250,128 +228,106 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage, sou
                 <SelectItem value="hi">Hindi</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">The language you speak during recording</p>
           </div>
 
-          <div className="h-px bg-border" />
-
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Processing Mode</Label>
+          <div className="space-y-1.5">
+            <Label className="text-sm font-medium">Mode</Label>
             <Select value={mode} onValueChange={(value) => setMode(value as 'correct' | 'translate')}>
-              <SelectTrigger className="h-9">
+              <SelectTrigger className="h-8 text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="correct">Correct Text Only</SelectItem>
-                <SelectItem value="translate">Translate to Another Language</SelectItem>
+                <SelectItem value="correct">Correct Only</SelectItem>
+                <SelectItem value="translate">Translate</SelectItem>
               </SelectContent>
             </Select>
           </div>
+        </div>
 
-          {mode === 'translate' && (
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Target Language</Label>
-              <Select value={targetLanguage} onValueChange={setTargetLanguage}>
-                <SelectTrigger className="h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent side="bottom" className="max-h-[280px]">
-                  <SelectItem value="pt">Portuguese</SelectItem>
-                  <SelectItem value="en">English</SelectItem>
-                  <SelectItem value="es">Spanish</SelectItem>
-                  <SelectItem value="fr">French</SelectItem>
-                  <SelectItem value="de">German</SelectItem>
-                  <SelectItem value="it">Italian</SelectItem>
-                  <SelectItem value="nl">Dutch</SelectItem>
-                  <SelectItem value="ru">Russian</SelectItem>
-                  <SelectItem value="zh">Chinese</SelectItem>
-                  <SelectItem value="ja">Japanese</SelectItem>
-                  <SelectItem value="ko">Korean</SelectItem>
-                  <SelectItem value="ar">Arabic</SelectItem>
-                  <SelectItem value="hi">Hindi</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">The language to translate to</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        {mode === 'translate' && (
+          <div className="space-y-1.5">
+            <Label className="text-sm font-medium">Target Language</Label>
+            <Select value={targetLanguage} onValueChange={setTargetLanguage}>
+              <SelectTrigger className="h-8 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent side="bottom" className="max-h-[180px]">
+                <SelectItem value="pt">Portuguese</SelectItem>
+                <SelectItem value="en">English</SelectItem>
+                <SelectItem value="es">Spanish</SelectItem>
+                <SelectItem value="fr">French</SelectItem>
+                <SelectItem value="de">German</SelectItem>
+                <SelectItem value="it">Italian</SelectItem>
+                <SelectItem value="nl">Dutch</SelectItem>
+                <SelectItem value="ru">Russian</SelectItem>
+                <SelectItem value="zh">Chinese</SelectItem>
+                <SelectItem value="ja">Japanese</SelectItem>
+                <SelectItem value="ko">Korean</SelectItem>
+                <SelectItem value="ar">Arabic</SelectItem>
+                <SelectItem value="hi">Hindi</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+      </div>
+
+      <div className="h-px bg-border" />
 
       {/* Keyboard Shortcut */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-base">Keyboard Shortcut</CardTitle>
-          <CardDescription className="text-sm">Global hotkey to start/stop recording</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <div className="flex gap-2">
-              <Input
-                id="hotkey"
-                type="text"
-                placeholder="Press keys..."
-                value={hotkey}
-                onFocus={() => setIsRecordingHotkey(true)}
-                onBlur={() => setIsRecordingHotkey(false)}
-                onKeyDown={handleHotkeyRecording}
-                readOnly
-                disabled={isLoading}
-                className={`h-9 font-mono text-sm ${isRecordingHotkey ? 'border-primary ring-1 ring-primary' : ''}`}
-              />
-              <Button onClick={saveHotkey} disabled={isLoading || !hotkey} size="sm" className="h-9 px-4">
-                Save
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {isRecordingHotkey
-                ? 'Press the desired key combination...'
-                : 'Click the field and press a combination'}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-2">
+        <Label className="text-sm font-medium">Keyboard Shortcut</Label>
+        <div className="flex gap-2">
+          <Input
+            id="hotkey"
+            type="text"
+            placeholder="Click and press keys..."
+            value={hotkey}
+            onFocus={() => setIsRecordingHotkey(true)}
+            onBlur={() => setIsRecordingHotkey(false)}
+            onKeyDown={handleHotkeyRecording}
+            readOnly
+            disabled={isLoading}
+            className={`h-8 font-mono text-sm ${isRecordingHotkey ? 'border-primary ring-1 ring-primary' : ''}`}
+          />
+          <Button onClick={saveHotkey} disabled={isLoading || !hotkey} size="sm" className="h-8 px-3 text-xs">
+            Save
+          </Button>
+        </div>
+      </div>
+
+      <div className="h-px bg-border" />
 
       {/* AI Models */}
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-base">AI Models</CardTitle>
-          <CardDescription className="text-sm">Choose models for transcription and processing</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Transcription Model</Label>
-            <Select value={whisperModel} onValueChange={handleWhisperModelChange} disabled={isLoading}>
-              <SelectTrigger className="h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="gpt-4o-mini-transcribe">GPT-4o Mini Transcribe</SelectItem>
-                <SelectItem value="gpt-4o-transcribe">GPT-4o Transcribe</SelectItem>
-                <SelectItem value="whisper-1">Whisper-1 (Legacy)</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">Converts speech to text</p>
-          </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label className="text-sm font-medium">Transcription</Label>
+          <Select value={whisperModel} onValueChange={handleWhisperModelChange} disabled={isLoading}>
+            <SelectTrigger className="h-8 text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="gpt-4o-mini-transcribe">GPT-4o Mini</SelectItem>
+              <SelectItem value="gpt-4o-transcribe">GPT-4o</SelectItem>
+              <SelectItem value="whisper-1">Whisper-1</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
-          <div className="h-px bg-border" />
-
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Processing Model</Label>
-            <Select value={gptModel} onValueChange={handleGptModelChange} disabled={isLoading}>
-              <SelectTrigger className="h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="gpt-4o">GPT-4o (Recommended)</SelectItem>
-                <SelectItem value="gpt-4o-mini">GPT-4o Mini (Faster)</SelectItem>
-                <SelectItem value="gpt-4-turbo">GPT-4 Turbo</SelectItem>
-                <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">Corrects and translates text</p>
-          </div>
-        </CardContent>
-      </Card>
+        <div className="space-y-1.5">
+          <Label className="text-sm font-medium">Processing</Label>
+          <Select value={gptModel} onValueChange={handleGptModelChange} disabled={isLoading}>
+            <SelectTrigger className="h-8 text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="gpt-4o">GPT-4o</SelectItem>
+              <SelectItem value="gpt-4o-mini">GPT-4o Mini</SelectItem>
+              <SelectItem value="gpt-4-turbo">GPT-4 Turbo</SelectItem>
+              <SelectItem value="gpt-3.5-turbo">GPT-3.5</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
     </div>
   );
 }

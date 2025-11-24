@@ -111,6 +111,15 @@ const createOverlayWindow = () => {
     },
   });
 
+  // Set window to appear above fullscreen apps on macOS
+  // Using 'screen-saver' level (highest level) to ensure it appears above ALL apps including fullscreen
+  // Levels: normal < floating < modal-panel < main-menu < status < pop-up-menu < screen-saver
+  if (process.platform === 'darwin') {
+    overlayWindow.setAlwaysOnTop(true, 'screen-saver');
+    // Also set the window to be visible on all workspaces/spaces
+    overlayWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  }
+
   if (process.env.VITE_DEV_SERVER_URL) {
     overlayWindow.loadURL(process.env.VITE_DEV_SERVER_URL + '/overlay.html');
   } else {

@@ -30,7 +30,9 @@
       ],
       "extendInfo": {
         "NSMicrophoneUsageDescription": "WishperPro precisa de acesso ao microfone para transcrever áudio.",
-        "NSCameraUsageDescription": "WishperPro não usa câmera, mas pode ser solicitado pelo sistema."
+        "NSCameraUsageDescription": "WishperPro não usa câmera, mas pode ser solicitado pelo sistema.",
+        "NSAppleEventsUsageDescription": "WishperPro precisa de permissão para colar texto automaticamente em outras aplicações.",
+        "LSBackgroundOnly": false
       },
       "hardenedRuntime": true,
       "gatekeeperAssess": false,

@@ -18,6 +18,7 @@ const createWindow = () => {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      backgroundThrottling: false, // Keep renderer active even when hidden
     },
   });
 
@@ -58,6 +59,21 @@ const createWindow = () => {
 
   const menu = Menu.buildFromTemplate(template);
   Menu.setApplicationMenu(menu);
+
+  // Intercept minimize event and hide instead
+  // This keeps the renderer process active for recording
+  mainWindow.on('minimize', (event) => {
+    event.preventDefault();
+    mainWindow?.hide();
+    console.log('[WINDOW] Window hidden instead of minimized (keeps renderer active)');
+  });
+
+  // When clicking on dock icon, show the window again
+  app.on('activate', () => {
+    if (mainWindow && !mainWindow.isVisible()) {
+      mainWindow.show();
+    }
+  });
 };
 
 const createOverlayWindow = () => {
@@ -121,6 +137,9 @@ const registerHotkey = () => {
 
   const ret = globalShortcut.register(hotkey, () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
+      // Send toggle recording event regardless of window state
+      // The overlay window will show recording status
+      console.log('[HOTKEY] Sending toggle-recording event (window may be minimized)');
       mainWindow.webContents.send('toggle-recording');
     }
   });

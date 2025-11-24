@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, forwardRef, useImperativeHandle } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,7 +9,13 @@ interface RecorderProps {
   targetLanguage: string;
 }
 
-export function Recorder({ mode, targetLanguage }: RecorderProps) {
+export interface RecorderHandle {
+  startRecording: () => void;
+  stopRecording: () => void;
+  isRecording: () => boolean;
+}
+
+export const Recorder = forwardRef<RecorderHandle, RecorderProps>(({ mode, targetLanguage }, ref) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [transcribedText, setTranscribedText] = useState('');
@@ -23,29 +29,6 @@ export function Recorder({ mode, targetLanguage }: RecorderProps) {
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
-
-  // Register hotkey listener ONCE on mount, not on every state change
-  useEffect(() => {
-    const handleToggle = () => {
-      console.log('[RECORDER] Hotkey pressed, isRecordingRef:', isRecordingRef.current);
-      if (isRecordingRef.current) {
-        stopRecording();
-      } else {
-        startRecording();
-      }
-    };
-
-    if (window.electronAPI?.onToggleRecording) {
-      console.log('[RECORDER] Registering hotkey listener (once on mount)');
-      const cleanup = window.electronAPI.onToggleRecording(handleToggle);
-
-      // Cleanup on unmount - properly remove the IPC listener
-      return () => {
-        console.log('[RECORDER] Removing hotkey listener on unmount');
-        if (cleanup) cleanup();
-      };
-    }
-  }, []); // Empty deps = runs once on mount
 
   const startRecording = async () => {
     try {
@@ -339,6 +322,13 @@ export function Recorder({ mode, targetLanguage }: RecorderProps) {
     }
   };
 
+  // Expose methods to parent component via ref (for global hotkey control)
+  useImperativeHandle(ref, () => ({
+    startRecording,
+    stopRecording,
+    isRecording: () => isRecordingRef.current,
+  }));
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -413,4 +403,4 @@ export function Recorder({ mode, targetLanguage }: RecorderProps) {
       </CardContent>
     </Card>
   );
-}
+});

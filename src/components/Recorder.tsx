@@ -288,10 +288,18 @@ export function Recorder({ mode, targetLanguage }: RecorderProps) {
       console.log('[RECORDER] Processed text received:', processResult.text);
       setFinalText(processResult.text);
 
-      // Only copy to clipboard, do NOT auto-paste
-      // User can review the text and manually paste when ready
-      await window.electronAPI.copyToClipboard(processResult.text);
-      toast.success('✓ Transcrição concluída e copiada para a área de transferência!');
+      // Auto-paste text where the cursor is positioned
+      console.log('[RECORDER] Auto-pasting text to active window');
+      const pasteResult = await window.electronAPI.pasteToActiveWindow(processResult.text);
+
+      if (pasteResult.success) {
+        toast.success('✓ Transcrição concluída e colada automaticamente!');
+      } else {
+        // Fallback to clipboard if auto-paste fails
+        console.warn('[RECORDER] Auto-paste failed, falling back to clipboard:', pasteResult.error);
+        await window.electronAPI.copyToClipboard(processResult.text);
+        toast.success('✓ Transcrição concluída e copiada para a área de transferência!');
+      }
     } catch (error) {
       console.error('Error processing audio:', error);
       toast.error((error as Error).message || 'Erro ao processar áudio');

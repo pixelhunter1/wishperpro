@@ -133,11 +133,16 @@ export function Recorder({ mode, targetLanguage }: RecorderProps) {
 
       setFinalText(processResult.text);
 
-      // Copy to clipboard automatically (user can paste with Cmd+V)
-      await window.electronAPI.copyToClipboard(processResult.text);
-
-      // Show success toast only at the end
-      toast.success('✓ Transcrição concluída e copiada!');
+      // Try to paste automatically to where cursor is
+      try {
+        await window.electronAPI.pasteToActiveWindow(processResult.text);
+        toast.success('✓ Transcrição concluída e colada!');
+      } catch (error) {
+        // If paste fails, just copy to clipboard
+        console.warn('Auto-paste failed, falling back to clipboard:', error);
+        await window.electronAPI.copyToClipboard(processResult.text);
+        toast.success('✓ Transcrição concluída e copiada!');
+      }
     } catch (error) {
       console.error('Error processing audio:', error);
       toast.error((error as Error).message || 'Erro ao processar áudio');

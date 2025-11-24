@@ -58,18 +58,32 @@ export const transcribeAudio = async (
     extension: extension
   });
 
-  const transcription = await openai.audio.transcriptions.create({
-    file: file as any,
-    model: whisperModel, // Use selected model
-    language: 'pt', // Specify Portuguese for better accuracy (supported by all models)
-    // NO PROMPT: Prompts should only be used for specific words/names, not general context
-    // Using a prompt can cause Whisper to return the prompt text on silent/short audio
-    response_format: isNewModel ? 'json' : 'verbose_json', // New models support json or text
-    // Temperature: Research shows 0.0 increases hallucinations. Using 0.4 for better balance
-    temperature: 0.4,
-  });
+  let transcription;
+  try {
+    // Use File/Blob constructor for better compatibility
+    const audioFile = new File([buffer], `audio.${extension}`, { type: audioType });
 
-  console.log('[WHISPER] Raw transcription received:', transcription.text);
+    transcription = await openai.audio.transcriptions.create({
+      file: audioFile,
+      model: whisperModel, // Use selected model
+      language: 'pt', // Specify Portuguese for better accuracy (supported by all models)
+      // NO PROMPT: Prompts should only be used for specific words/names, not general context
+      // Using a prompt can cause Whisper to return the prompt text on silent/short audio
+      response_format: isNewModel ? 'json' : 'verbose_json', // New models support json or text
+      // Temperature: Research shows 0.0 increases hallucinations. Using 0.4 for better balance
+      temperature: 0.4,
+    });
+
+    console.log('[WHISPER] Raw transcription received:', transcription.text);
+  } catch (error: any) {
+    console.error('[WHISPER] Transcription error:', error);
+    console.error('[WHISPER] Error details:', {
+      message: error.message,
+      status: error.status,
+      type: error.type
+    });
+    throw new Error(`${error.status || 'Error'} ${error.message || 'Audio transcription failed'}`);
+  }
 
   // Clean up the transcription text by removing any non-speech annotations and hallucinations
   let cleanText = transcription.text

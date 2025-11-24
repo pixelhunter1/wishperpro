@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, clipboard, globalShortcut } from 'electron';
+import { app, BrowserWindow, ipcMain, clipboard, globalShortcut, Menu } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { initDatabase, saveTranscription, getTranscriptions, saveApiKey, getApiKey, saveHotkey, getHotkey, deleteTranscription, clearAllTranscriptions, saveGptModel, getGptModel, saveWhisperModel, getWhisperModel } from './db';
@@ -25,7 +25,40 @@ const createWindow = () => {
     mainWindow.webContents.openDevTools();
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+    // TEMPORARY: Open DevTools in production for debugging microphone issue
+    mainWindow.webContents.openDevTools();
   }
+
+  // Create menu with DevTools option
+  const template: Electron.MenuItemConstructorOptions[] = [
+    {
+      label: 'WishperPro',
+      submenu: [
+        { role: 'about' },
+        { type: 'separator' },
+        { role: 'quit' }
+      ]
+    },
+    {
+      label: 'Ver',
+      submenu: [
+        { role: 'reload' },
+        { role: 'forceReload' },
+        {
+          label: 'Abrir DevTools',
+          accelerator: 'CmdOrCtrl+Alt+I',
+          click: () => mainWindow?.webContents.toggleDevTools()
+        },
+        { type: 'separator' },
+        { role: 'resetZoom' },
+        { role: 'zoomIn' },
+        { role: 'zoomOut' }
+      ]
+    }
+  ];
+
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
 };
 
 const registerHotkey = () => {

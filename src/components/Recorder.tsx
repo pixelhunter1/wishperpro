@@ -49,18 +49,30 @@ export function Recorder({ mode, targetLanguage }: RecorderProps) {
       setTranscribedText('');
       setFinalText('');
 
+      console.log('[RECORDER] Requesting microphone access...');
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log('[RECORDER] Microphone access granted, stream:', stream);
 
-      // Try to find the best supported audio format
-      let mimeType = 'audio/webm;codecs=opus';
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = 'audio/webm';
-        if (!MediaRecorder.isTypeSupported(mimeType)) {
-          mimeType = 'audio/mp4';
-          if (!MediaRecorder.isTypeSupported(mimeType)) {
-            mimeType = ''; // Use default
-          }
+      // Try audio formats in order of OpenAI compatibility
+      // WAV is most compatible but larger file size
+      let mimeType = '';
+      const formats = [
+        'audio/wav',           // Most compatible with OpenAI
+        'audio/mp4',           // Good compatibility
+        'audio/webm;codecs=opus', // Compressed but may have issues
+        'audio/webm',          // Fallback
+      ];
+
+      for (const format of formats) {
+        if (MediaRecorder.isTypeSupported(format)) {
+          mimeType = format;
+          console.log('[RECORDER] Selected format:', format);
+          break;
         }
+      }
+
+      if (!mimeType) {
+        console.warn('[RECORDER] No preferred format supported, using default');
       }
 
       const options = mimeType ? { mimeType } : {};
@@ -97,9 +109,21 @@ export function Recorder({ mode, targetLanguage }: RecorderProps) {
       mediaRecorder.start();
       setIsRecording(true);
       isRecordingRef.current = true; // Sync ref with state
+      console.log('[RECORDER] Recording started successfully');
     } catch (error) {
-      console.error('Error starting recording:', error);
-      toast.error('Erro ao aceder ao microfone');
+      console.error('[RECORDER] Error starting recording:', error);
+
+      // Provide specific error messages
+      const err = error as Error;
+      if (err.name === 'NotAllowedError') {
+        toast.error('Permissão de microfone negada. Verifica as definições do sistema.');
+      } else if (err.name === 'NotFoundError') {
+        toast.error('Nenhum microfone encontrado. Conecta um microfone e tenta novamente.');
+      } else if (err.name === 'NotReadableError') {
+        toast.error('Microfone em uso por outra aplicação. Fecha outras apps e tenta novamente.');
+      } else {
+        toast.error(`Erro ao aceder ao microfone: ${err.message}`);
+      }
     }
   };
 

@@ -27,7 +27,15 @@
       "target": [
         "dmg",
         "zip"
-      ]
+      ],
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "WishperPro precisa de acesso ao microfone para transcrever áudio.",
+        "NSCameraUsageDescription": "WishperPro não usa câmera, mas pode ser solicitado pelo sistema."
+      },
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
     },
     "win": {
       "target": [

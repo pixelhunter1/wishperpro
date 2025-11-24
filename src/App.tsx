@@ -113,7 +113,7 @@ function App() {
                     </svg>
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-md w-[calc(100%-2rem)] max-h-[80vh] overflow-y-auto p-5">
+                <DialogContent className="max-w-md w-[calc(100%-2rem)] max-h-[85vh] overflow-y-auto p-5">
                   <DialogHeader>
                     <DialogTitle>Settings</DialogTitle>
                   </DialogHeader>

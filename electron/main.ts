@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain, clipboard, globalShortcut } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { initDatabase, saveTranscription, getTranscriptions, saveApiKey, getApiKey, saveHotkey, getHotkey } from './db';
+import { initDatabase, saveTranscription, getTranscriptions, saveApiKey, getApiKey, saveHotkey, getHotkey, deleteTranscription, clearAllTranscriptions } from './db';
 import { transcribeAudio, processText } from './openai';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -88,14 +88,14 @@ ipcMain.handle('get-api-key', async () => {
   }
 });
 
-ipcMain.handle('transcribe-audio', async (_event, audioBlob: ArrayBuffer) => {
+ipcMain.handle('transcribe-audio', async (_event, data: { audioBlob: ArrayBuffer; mimeType?: string }) => {
   try {
     const apiKey = getApiKey();
     if (!apiKey) {
       throw new Error('API Key not configured');
     }
 
-    const transcription = await transcribeAudio(audioBlob, apiKey);
+    const transcription = await transcribeAudio(data.audioBlob, apiKey, data.mimeType);
     return { success: true, text: transcription };
   } catch (error) {
     return { success: false, error: (error as Error).message };
@@ -147,6 +147,24 @@ ipcMain.handle('get-transcriptions', async () => {
   try {
     const transcriptions = getTranscriptions();
     return { success: true, transcriptions };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+ipcMain.handle('delete-transcription', async (_event, id: number) => {
+  try {
+    deleteTranscription(id);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+ipcMain.handle('clear-all-transcriptions', async () => {
+  try {
+    clearAllTranscriptions();
+    return { success: true };
   } catch (error) {
     return { success: false, error: (error as Error).message };
   }

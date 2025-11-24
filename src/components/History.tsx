@@ -49,6 +49,40 @@ export function History() {
     }
   };
 
+  const deleteItem = async (id: number) => {
+    try {
+      const result = await window.electronAPI.deleteTranscription(id);
+      if (result.success) {
+        toast.success('Transcrição removida!');
+        loadTranscriptions(); // Reload list
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error('Error deleting transcription:', error);
+      toast.error('Erro ao remover transcrição');
+    }
+  };
+
+  const clearAll = async () => {
+    if (!confirm('Tem certeza que deseja apagar todo o histórico?')) {
+      return;
+    }
+
+    try {
+      const result = await window.electronAPI.clearAllTranscriptions();
+      if (result.success) {
+        toast.success('Histórico limpo!');
+        loadTranscriptions(); // Reload list
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error('Error clearing history:', error);
+      toast.error('Erro ao limpar histórico');
+    }
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return new Intl.DateTimeFormat('pt-PT', {
@@ -86,10 +120,19 @@ export function History() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Histórico de Transcrições</CardTitle>
-        <CardDescription>
-          {transcriptions.length} transcrição{transcriptions.length !== 1 ? 'ões' : ''}
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Histórico de Transcrições</CardTitle>
+            <CardDescription>
+              {transcriptions.length} transcrição{transcriptions.length !== 1 ? 'ões' : ''}
+            </CardDescription>
+          </div>
+          {transcriptions.length > 0 && (
+            <Button variant="destructive" size="sm" onClick={clearAll}>
+              Limpar Tudo
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         {transcriptions.length === 0 ? (
@@ -112,9 +155,19 @@ export function History() {
                       {getLanguageName(transcription.language)}
                     </Badge>
                   </div>
-                  <span className="text-xs text-muted-foreground">
-                    {formatDate(transcription.date)}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">
+                      {formatDate(transcription.date)}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deleteItem(transcription.id)}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      ✕
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="space-y-2">

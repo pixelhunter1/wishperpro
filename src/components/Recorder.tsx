@@ -20,23 +20,40 @@ export function Recorder({ mode, targetLanguage }: RecorderProps) {
 
   useEffect(() => {
     // Listen for hotkey toggle from main process
+    const handleToggle = () => {
+      console.log('Hotkey pressed, isRecording:', isRecording);
+      if (isRecording) {
+        stopRecording();
+      } else {
+        startRecording();
+      }
+    };
+
     if (window.electronAPI?.onToggleRecording) {
-      window.electronAPI.onToggleRecording(() => {
-        if (isRecording) {
-          stopRecording();
-        } else {
-          startRecording();
-        }
-      });
+      window.electronAPI.onToggleRecording(handleToggle);
     }
   }, [isRecording]);
 
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm',
-      });
+
+      // Try to find the best supported audio format
+      let mimeType = 'audio/webm;codecs=opus';
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = 'audio/webm';
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+          mimeType = 'audio/mp4';
+          if (!MediaRecorder.isTypeSupported(mimeType)) {
+            mimeType = ''; // Use default
+          }
+        }
+      }
+
+      const options = mimeType ? { mimeType } : {};
+      const mediaRecorder = new MediaRecorder(stream, options);
+
+      console.log('Recording with mimeType:', mediaRecorder.mimeType);
 
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
@@ -48,7 +65,8 @@ export function Recorder({ mode, targetLanguage }: RecorderProps) {
       };
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType });
+        console.log('Audio blob created:', audioBlob.size, 'bytes, type:', audioBlob.type);
         await processAudio(audioBlob);
 
         // Stop all tracks to release microphone
@@ -75,12 +93,26 @@ export function Recorder({ mode, targetLanguage }: RecorderProps) {
 
   const processAudio = async (audioBlob: Blob) => {
     try {
+      // Check minimum audio size (at least 1KB)
+      if (audioBlob.size < 1000) {
+        toast.error('Áudio muito curto. Por favor, grave pelo menos 1 segundo.');
+        return;
+      }
+
+      console.log('Processing audio blob:', {
+        size: audioBlob.size,
+        type: audioBlob.type,
+        sizeKB: (audioBlob.size / 1024).toFixed(2) + ' KB'
+      });
+
       // Convert Blob to ArrayBuffer
       const arrayBuffer = await audioBlob.arrayBuffer();
 
       // Step 1: Transcribe audio
-      toast.info('A transcrever áudio...');
-      const transcriptionResult = await window.electronAPI.transcribeAudio(arrayBuffer);
+      const transcriptionResult = await window.electronAPI.transcribeAudio({
+        audioBlob: arrayBuffer,
+        mimeType: audioBlob.type,
+      });
 
       if (!transcriptionResult.success || !transcriptionResult.text) {
         throw new Error(transcriptionResult.error || 'Erro na transcrição');
@@ -89,7 +121,6 @@ export function Recorder({ mode, targetLanguage }: RecorderProps) {
       setTranscribedText(transcriptionResult.text);
 
       // Step 2: Process text (correct or translate)
-      toast.info(mode === 'correct' ? 'A corrigir texto...' : 'A traduzir texto...');
       const processResult = await window.electronAPI.processText({
         text: transcriptionResult.text,
         mode,
@@ -101,7 +132,9 @@ export function Recorder({ mode, targetLanguage }: RecorderProps) {
       }
 
       setFinalText(processResult.text);
-      toast.success('Texto processado com sucesso!');
+
+      // Show success toast only at the end
+      toast.success('✓ Transcrição concluída!');
     } catch (error) {
       console.error('Error processing audio:', error);
       toast.error((error as Error).message || 'Erro ao processar áudio');
@@ -132,7 +165,8 @@ export function Recorder({ mode, targetLanguage }: RecorderProps) {
       <CardHeader>
         <CardTitle>Gravação de Áudio</CardTitle>
         <CardDescription>
-          Mantenha o botão pressionado enquanto fala
+          <strong>Mouse:</strong> Mantenha o botão pressionado enquanto fala<br />
+          <strong>Teclado (Cmd+Shift+R):</strong> Pressione para iniciar, pressione novamente para parar
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

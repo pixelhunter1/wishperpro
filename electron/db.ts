@@ -108,5 +108,6 @@ export const deleteTranscription = (id: number): void => {
 };
 
 export const clearAllTranscriptions = (): void => {
-  db.exec('DELETE FROM transcriptions');
+  const stmt = db.prepare('DELETE FROM transcriptions');
+  stmt.run();
 };

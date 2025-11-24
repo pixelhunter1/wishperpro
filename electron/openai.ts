@@ -3,20 +3,40 @@ import { Readable } from 'stream';
 
 export const transcribeAudio = async (
   audioBuffer: ArrayBuffer,
-  apiKey: string
+  apiKey: string,
+  mimeType?: string
 ): Promise<string> => {
   const openai = new OpenAI({ apiKey });
 
   // Convert ArrayBuffer to Buffer
   const buffer = Buffer.from(audioBuffer);
 
+  // Detect file extension from mime type
+  let extension = 'webm';
+  let audioType = 'audio/webm';
+
+  if (mimeType) {
+    audioType = mimeType.split(';')[0]; // Remove codec info
+    if (audioType.includes('webm')) {
+      extension = 'webm';
+    } else if (audioType.includes('mp4') || audioType.includes('m4a')) {
+      extension = 'm4a';
+    } else if (audioType.includes('ogg')) {
+      extension = 'ogg';
+    } else if (audioType.includes('wav')) {
+      extension = 'wav';
+    }
+  }
+
+  console.log(`Transcribing audio: ${buffer.length} bytes, type: ${audioType}, extension: ${extension}`);
+
   // Create a readable stream from the buffer
   const stream = Readable.from(buffer);
 
   // Add required properties for file upload
   const file = Object.assign(stream, {
-    name: 'audio.webm',
-    type: 'audio/webm',
+    name: `audio.${extension}`,
+    type: audioType,
   });
 
   const transcription = await openai.audio.transcriptions.create({

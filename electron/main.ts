@@ -1,13 +1,14 @@
-import { app, BrowserWindow, ipcMain, clipboard, globalShortcut, Menu } from 'electron';
+import { app, BrowserWindow, ipcMain, clipboard, globalShortcut, Menu, screen } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { initDatabase, saveTranscription, getTranscriptions, saveApiKey, getApiKey, saveHotkey, getHotkey, deleteTranscription, clearAllTranscriptions, saveGptModel, getGptModel, saveWhisperModel, getWhisperModel } from './db';
+import { initDatabase, saveTranscription, getTranscriptions, saveApiKey, getApiKey, saveHotkey, getHotkey, deleteTranscription, clearAllTranscriptions, saveGptModel, getGptModel, saveWhisperModel, getWhisperModel, saveOverlayPosition, getOverlayPosition } from './db';
 import { transcribeAudio, processText } from './openai';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 let mainWindow: BrowserWindow | null = null;
+let overlayWindow: BrowserWindow | null = null;
 
 const createWindow = () => {
   mainWindow = new BrowserWindow({
@@ -59,6 +60,59 @@ const createWindow = () => {
   Menu.setApplicationMenu(menu);
 };
 
+const createOverlayWindow = () => {
+  // Get saved position or use default (top-right)
+  const savedPosition = getOverlayPosition();
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const { width, height } = primaryDisplay.workAreaSize;
+
+  const overlayWidth = 60;
+  const overlayHeight = 60;
+
+  let x = width - overlayWidth - 20; // Default: top-right with margin
+  let y = 20;
+
+  if (savedPosition) {
+    x = savedPosition.x;
+    y = savedPosition.y;
+  }
+
+  overlayWindow = new BrowserWindow({
+    width: overlayWidth,
+    height: overlayHeight,
+    x,
+    y,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    resizable: false,
+    skipTaskbar: true,
+    hasShadow: true,
+    webPreferences: {
+      preload: path.join(__dirname, 'overlay-preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  if (process.env.VITE_DEV_SERVER_URL) {
+    overlayWindow.loadURL(process.env.VITE_DEV_SERVER_URL + '/overlay.html');
+  } else {
+    overlayWindow.loadFile(path.join(__dirname, '../dist/overlay.html'));
+  }
+
+  // Save position when window is moved
+  overlayWindow.on('move', () => {
+    if (overlayWindow && !overlayWindow.isDestroyed()) {
+      const [newX, newY] = overlayWindow.getPosition();
+      saveOverlayPosition(newX, newY);
+    }
+  });
+
+  // Mostrar sempre o overlay (sempre visível)
+  overlayWindow.show();
+};
+
 const registerHotkey = () => {
   // Unregister all previous shortcuts
   globalShortcut.unregisterAll();
@@ -81,11 +135,13 @@ const registerHotkey = () => {
 app.whenReady().then(() => {
   initDatabase();
   createWindow();
+  createOverlayWindow();
   registerHotkey();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
+      createOverlayWindow();
     }
   });
 });
@@ -368,5 +424,34 @@ ipcMain.handle('get-whisper-model', async () => {
     return { success: true, model };
   } catch (error) {
     return { success: false, error: (error as Error).message };
+  }
+});
+
+// Overlay window control
+ipcMain.handle('show-overlay-window', async () => {
+  try {
+    if (!overlayWindow || overlayWindow.isDestroyed()) {
+      createOverlayWindow();
+    }
+    overlayWindow?.show();
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+ipcMain.handle('hide-overlay-window', async () => {
+  try {
+    overlayWindow?.hide();
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+// Audio level updates (sent from renderer to overlay)
+ipcMain.on('audio-level', (_event, level: number) => {
+  if (overlayWindow && !overlayWindow.isDestroyed()) {
+    overlayWindow.webContents.send('update-audio-level', level);
   }
 });

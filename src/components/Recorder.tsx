@@ -20,6 +20,9 @@ export function Recorder({ mode, targetLanguage }: RecorderProps) {
   const isRecordingRef = useRef(false); // Track recording state without triggering re-renders
   const isProcessingRef = useRef(false); // Prevent duplicate processing
   const recordingStartTimeRef = useRef<number>(0); // Track recording duration
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
 
   // Register hotkey listener ONCE on mount, not on every state change
   useEffect(() => {
@@ -129,6 +132,38 @@ export function Recorder({ mode, targetLanguage }: RecorderProps) {
       isRecordingRef.current = true; // Sync ref with state
       recordingStartTimeRef.current = Date.now(); // Track when recording started
       console.log('[RECORDER] Recording started successfully');
+
+      // Setup Web Audio API for real-time audio level visualization
+      const audioContext = new AudioContext();
+      const analyser = audioContext.createAnalyser();
+      const source = audioContext.createMediaStreamSource(stream);
+
+      source.connect(analyser);
+      analyser.fftSize = 256;
+
+      audioContextRef.current = audioContext;
+      analyserRef.current = analyser;
+
+      // Start sending audio levels to overlay
+      const sendAudioLevels = () => {
+        if (!analyserRef.current || !isRecordingRef.current) {
+          return;
+        }
+
+        const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+        analyserRef.current.getByteFrequencyData(dataArray);
+
+        // Calculate average volume
+        const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+
+        // Send to main process which forwards to overlay
+        window.electronAPI.sendAudioLevel(average);
+
+        // Continue animation loop
+        animationFrameRef.current = requestAnimationFrame(sendAudioLevels);
+      };
+
+      sendAudioLevels();
     } catch (error) {
       console.error('[RECORDER] Error starting recording:', error);
 
@@ -148,6 +183,23 @@ export function Recorder({ mode, targetLanguage }: RecorderProps) {
 
   const stopRecording = () => {
     console.log('[RECORDER] stopRecording called, isRecordingRef:', isRecordingRef.current);
+
+    // Stop audio level updates
+    if (animationFrameRef.current !== null) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+
+    // Close audio context
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+      analyserRef.current = null;
+    }
+
+    // Enviar nível 0 para mostrar que não está a gravar
+    window.electronAPI.sendAudioLevel(0);
+
     // Use ref instead of state for checking, as state may be stale in hotkey handler
     if (mediaRecorderRef.current && isRecordingRef.current) {
       // Check if recording was too short (less than 500ms)

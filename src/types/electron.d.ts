@@ -28,6 +28,9 @@ export interface ElectronAPI {
   deleteTranscription: (id: number) => Promise<{ success: boolean; error?: string }>;
   clearAllTranscriptions: () => Promise<{ success: boolean; error?: string }>;
   onToggleRecording: (callback: () => void) => () => void;
+  showOverlayWindow: () => Promise<{ success: boolean; error?: string }>;
+  hideOverlayWindow: () => Promise<{ success: boolean; error?: string }>;
+  sendAudioLevel: (level: number) => void;
 }
 
 declare global {

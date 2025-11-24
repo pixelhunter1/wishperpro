@@ -10,6 +10,14 @@ import renderer from "vite-plugin-electron-renderer"
 
 // https://vite.dev/config/
 export default defineConfig({
+  build: {
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, 'index.html'),
+        overlay: path.resolve(__dirname, 'overlay.html'),
+      },
+    },
+  },
   plugins: [
     react(),
     tailwindcss(),
@@ -44,6 +52,30 @@ export default defineConfig({
                 format: 'cjs',
                 exports: 'auto',
                 entryFileNames: 'preload.js',
+              },
+            },
+          },
+        },
+      },
+      {
+        entry: 'electron/overlay-preload.ts',
+        onstart(args) {
+          args.reload()
+        },
+        vite: {
+          build: {
+            outDir: 'dist-electron',
+            lib: {
+              entry: 'electron/overlay-preload.ts',
+              formats: ['cjs'],
+              fileName: () => 'overlay-preload.js',
+            },
+            rollupOptions: {
+              external: ['electron'],
+              output: {
+                format: 'cjs',
+                exports: 'auto',
+                entryFileNames: 'overlay-preload.js',
               },
             },
           },

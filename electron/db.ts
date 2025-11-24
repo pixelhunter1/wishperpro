@@ -139,3 +139,24 @@ export const getWhisperModel = (): string => {
   const row = stmt.get('whisper_model') as { value: string } | undefined;
   return row?.value || 'gpt-4o-mini-transcribe'; // Default to new faster model
 };
+
+export const saveOverlayPosition = (x: number, y: number): void => {
+  const stmt = db.prepare(`
+    INSERT OR REPLACE INTO settings (key, value)
+    VALUES (?, ?)
+  `);
+  stmt.run('overlay_position', JSON.stringify({ x, y }));
+};
+
+export const getOverlayPosition = (): { x: number; y: number } | null => {
+  const stmt = db.prepare('SELECT value FROM settings WHERE key = ?');
+  const row = stmt.get('overlay_position') as { value: string } | undefined;
+  if (row?.value) {
+    try {
+      return JSON.parse(row.value);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+};

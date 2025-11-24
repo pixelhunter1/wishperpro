@@ -23,4 +23,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.removeListener('toggle-recording', callback);
     };
   },
+  showOverlayWindow: () => ipcRenderer.invoke('show-overlay-window'),
+  hideOverlayWindow: () => ipcRenderer.invoke('hide-overlay-window'),
+  sendAudioLevel: (level) => ipcRenderer.send('audio-level', level),
 });

@@ -74,6 +74,26 @@ const createWindow = () => {
       mainWindow.show();
     }
   });
+
+  // Handle window close event
+  mainWindow.on('close', (event) => {
+    console.log('[WINDOW] Main window closing...');
+
+    // On macOS, when user closes the window, we should quit the app
+    // This ensures overlay window is also closed and app doesn't stay in dock
+    if (process.platform === 'darwin') {
+      console.log('[WINDOW] macOS: Closing overlay and quitting app');
+
+      // Close overlay window first
+      if (overlayWindow && !overlayWindow.isDestroyed()) {
+        overlayWindow.destroy();
+        overlayWindow = null;
+      }
+
+      // Quit the app
+      app.quit();
+    }
+  });
 };
 
 const createOverlayWindow = () => {
@@ -146,10 +166,16 @@ const registerHotkey = () => {
 
   const ret = globalShortcut.register(hotkey, () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
-      // Send toggle recording event regardless of window state
-      // The overlay window will show recording status
-      console.log('[HOTKEY] Sending toggle-recording event (window may be minimized)');
-      mainWindow.webContents.send('toggle-recording');
+      try {
+        // Send toggle recording event regardless of window state
+        // The overlay window will show recording status
+        console.log('[HOTKEY] Sending toggle-recording event (window may be minimized)');
+        mainWindow.webContents.send('toggle-recording');
+      } catch (error) {
+        console.error('[HOTKEY] Error sending toggle-recording event:', error);
+      }
+    } else {
+      console.warn('[HOTKEY] Cannot send event - main window is destroyed');
     }
   });
 
@@ -175,13 +201,34 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
+  // Cleanup overlay window if it still exists
+  if (overlayWindow && !overlayWindow.isDestroyed()) {
+    overlayWindow.destroy();
+    overlayWindow = null;
   }
+
+  // Quit on all platforms (including macOS)
+  // We changed behavior: closing main window should quit the app
+  app.quit();
 });
 
 app.on('will-quit', () => {
+  console.log('[APP] Application quitting, cleaning up...');
+
+  // Unregister all shortcuts
   globalShortcut.unregisterAll();
+
+  // Ensure overlay window is destroyed
+  if (overlayWindow && !overlayWindow.isDestroyed()) {
+    overlayWindow.destroy();
+    overlayWindow = null;
+  }
+
+  // Ensure main window is destroyed
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.destroy();
+    mainWindow = null;
+  }
 });
 
 // IPC Handlers
@@ -487,7 +534,11 @@ ipcMain.handle('hide-overlay-window', async () => {
 // Audio level updates (sent from renderer to overlay)
 ipcMain.on('audio-level', (_event, level: number) => {
   if (overlayWindow && !overlayWindow.isDestroyed()) {
-    overlayWindow.webContents.send('update-audio-level', level);
+    try {
+      overlayWindow.webContents.send('update-audio-level', level);
+    } catch (error) {
+      console.error('[AUDIO] Error sending audio level to overlay:', error);
+    }
   }
 });
 

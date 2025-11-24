@@ -30,7 +30,7 @@ export function History() {
       }
     } catch (error) {
       console.error('Error loading transcriptions:', error);
-      toast.error('Erro ao carregar histórico');
+      toast.error('Error loading history');
     } finally {
       setIsLoading(false);
     }
@@ -40,13 +40,13 @@ export function History() {
     try {
       const result = await window.electronAPI.copyToClipboard(text);
       if (result.success) {
-        toast.success('Texto copiado!');
+        toast.success('Text copied!');
       } else {
         throw new Error(result.error);
       }
     } catch (error) {
       console.error('Error copying to clipboard:', error);
-      toast.error('Erro ao copiar texto');
+      toast.error('Error copying text');
     }
   };
 
@@ -54,39 +54,39 @@ export function History() {
     try {
       const result = await window.electronAPI.deleteTranscription(id);
       if (result.success) {
-        toast.success('Transcrição removida!');
+        toast.success('Transcription deleted!');
         loadTranscriptions(); // Reload list
       } else {
         throw new Error(result.error);
       }
     } catch (error) {
       console.error('Error deleting transcription:', error);
-      toast.error('Erro ao remover transcrição');
+      toast.error('Error deleting transcription');
     }
   };
 
   const clearAll = async () => {
-    if (!confirm('Tem certeza que deseja apagar todo o histórico?')) {
+    if (!confirm('Are you sure you want to delete all history?')) {
       return;
     }
 
     try {
       const result = await window.electronAPI.clearAllTranscriptions();
       if (result.success) {
-        toast.success('Histórico limpo!');
+        toast.success('History cleared!');
         loadTranscriptions(); // Reload list
       } else {
         throw new Error(result.error);
       }
     } catch (error) {
       console.error('Error clearing history:', error);
-      toast.error('Erro ao limpar histórico');
+      toast.error('Error clearing history');
     }
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat('pt-PT', {
+    return new Intl.DateTimeFormat('en-US', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -97,12 +97,12 @@ export function History() {
 
   const getLanguageName = (code: string) => {
     const languages: Record<string, string> = {
-      pt: 'Português',
-      en: 'Inglês',
-      es: 'Espanhol',
-      fr: 'Francês',
-      de: 'Alemão',
-      it: 'Italiano',
+      pt: 'Portuguese',
+      en: 'English',
+      es: 'Spanish',
+      fr: 'French',
+      de: 'German',
+      it: 'Italian',
     };
     return languages[code] || code;
   };
@@ -111,8 +111,8 @@ export function History() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Histórico</CardTitle>
-          <CardDescription>A carregar...</CardDescription>
+          <CardTitle>History</CardTitle>
+          <CardDescription>Loading...</CardDescription>
         </CardHeader>
       </Card>
     );
@@ -123,14 +123,14 @@ export function History() {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Histórico de Transcrições</CardTitle>
+            <CardTitle>Transcription History</CardTitle>
             <CardDescription>
-              {transcriptions.length} transcrição{transcriptions.length !== 1 ? 'ões' : ''}
+              {transcriptions.length} transcription{transcriptions.length !== 1 ? 's' : ''}
             </CardDescription>
           </div>
           {transcriptions.length > 0 && (
             <Button variant="destructive" size="sm" onClick={clearAll}>
-              Limpar Tudo
+              Clear All
             </Button>
           )}
         </div>
@@ -138,7 +138,7 @@ export function History() {
       <CardContent>
         {transcriptions.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">
-            Nenhuma transcrição registada
+            No transcriptions recorded
           </p>
         ) : (
           <div className="space-y-4">
@@ -150,7 +150,7 @@ export function History() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Badge variant={transcription.mode === 'correct' ? 'default' : 'secondary'}>
-                      {transcription.mode === 'correct' ? 'Correção' : 'Tradução'}
+                      {transcription.mode === 'correct' ? 'Correction' : 'Translation'}
                     </Badge>
                     {/* Only show language badge when translating */}
                     {transcription.mode === 'translate' && (

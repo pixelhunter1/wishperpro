@@ -22,7 +22,7 @@ function App() {
   useEffect(() => {
     if (!window.electronAPI) {
       console.error('CRÍTICO: window.electronAPI não está disponível - preload script falhou');
-      toast.error('Erro crítico: A aplicação não conseguiu inicializar corretamente. Por favor, reinicie a aplicação.');
+      toast.error('Critical error: The application failed to initialize correctly. Please restart the application.');
     } else {
       console.log('✓ electronAPI carregado com sucesso');
     }
@@ -73,7 +73,7 @@ function App() {
         <div className="text-center space-y-2">
           <h1 className="text-4xl font-bold">WishperPro</h1>
           <p className="text-muted-foreground">
-            Transcreva, corrija e traduza usando a sua voz
+            Transcribe, correct and translate using your voice
           </p>
         </div>
 
@@ -89,8 +89,8 @@ function App() {
 
         <Tabs defaultValue="history" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="history">Histórico</TabsTrigger>
-            <TabsTrigger value="settings">Configurações</TabsTrigger>
+            <TabsTrigger value="history">History</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
           <TabsContent value="history" className="mt-6">

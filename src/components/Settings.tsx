@@ -35,7 +35,7 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage, onH
   const loadSettings = async () => {
     try {
       if (!window.electronAPI) {
-        throw new Error('electronAPI não está disponível - preload script falhou');
+        throw new Error('electronAPI not available - preload script failed');
       }
 
       const [apiKeyResult, hotkeyResult, gptModelResult, whisperModelResult] = await Promise.all([
@@ -62,7 +62,7 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage, onH
       }
     } catch (error) {
       console.error('Error loading settings:', error);
-      toast.error('Erro ao carregar configurações');
+      toast.error('Error loading settings');
     } finally {
       setIsLoading(false);
     }
@@ -71,24 +71,24 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage, onH
   const saveApiKey = async () => {
     try {
       if (!window.electronAPI) {
-        throw new Error('electronAPI não está disponível');
+        throw new Error('electronAPI not available');
       }
 
-      // Validar formato da API key
+      // Validate API key format
       if (!apiKey.startsWith('sk-')) {
-        toast.error('API Key inválida (deve começar com "sk-")');
+        toast.error('Invalid API Key (must start with "sk-")');
         return;
       }
 
       const result = await window.electronAPI.saveApiKey(apiKey);
       if (result?.success) {
-        toast.success('API Key guardada com sucesso!');
+        toast.success('API Key saved successfully!');
       } else {
-        throw new Error(result?.error || 'Erro desconhecido');
+        throw new Error(result?.error || 'Unknown error');
       }
     } catch (error) {
       console.error('Error saving API key:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Erro ao guardar API Key';
+      const errorMessage = error instanceof Error ? error.message : 'Error saving API Key';
       toast.error(errorMessage);
     }
   };
@@ -96,22 +96,22 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage, onH
   const saveHotkey = async () => {
     try {
       if (!window.electronAPI) {
-        throw new Error('electronAPI não está disponível');
+        throw new Error('electronAPI not available');
       }
 
       const result = await window.electronAPI.saveHotkey(hotkey);
       if (result?.success) {
-        toast.success('Atalho guardado com sucesso!');
+        toast.success('Hotkey saved successfully!');
         // Notify parent component of hotkey change
         if (onHotkeyChange) {
           onHotkeyChange(hotkey);
         }
       } else {
-        throw new Error(result?.error || 'Erro desconhecido');
+        throw new Error(result?.error || 'Unknown error');
       }
     } catch (error) {
       console.error('Error saving hotkey:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Erro ao guardar atalho';
+      const errorMessage = error instanceof Error ? error.message : 'Error saving hotkey';
       toast.error(errorMessage);
     }
   };
@@ -139,13 +139,13 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage, onH
       setGptModel(model);
       const result = await window.electronAPI.saveGptModel(model);
       if (result?.success) {
-        toast.success('Modelo GPT guardado!');
+        toast.success('GPT model saved!');
       } else {
-        throw new Error(result?.error || 'Erro desconhecido');
+        throw new Error(result?.error || 'Unknown error');
       }
     } catch (error) {
       console.error('Error saving GPT model:', error);
-      toast.error('Erro ao guardar modelo GPT');
+      toast.error('Error saving GPT model');
     }
   };
 
@@ -154,21 +154,21 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage, onH
       setWhisperModel(model);
       const result = await window.electronAPI.saveWhisperModel(model);
       if (result?.success) {
-        toast.success('Modelo Whisper guardado!');
+        toast.success('Whisper model saved!');
       } else {
-        throw new Error(result?.error || 'Erro desconhecido');
+        throw new Error(result?.error || 'Unknown error');
       }
     } catch (error) {
       console.error('Error saving Whisper model:', error);
-      toast.error('Erro ao guardar modelo Whisper');
+      toast.error('Error saving Whisper model');
     }
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Configurações</CardTitle>
-        <CardDescription>Configure a API OpenAI e preferências de idioma</CardDescription>
+        <CardTitle>Settings</CardTitle>
+        <CardDescription>Configure OpenAI API and language preferences</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* API Key */}
@@ -184,11 +184,11 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage, onH
               disabled={isLoading}
             />
             <Button onClick={saveApiKey} disabled={isLoading || !apiKey}>
-              Guardar
+              Save
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            Obtenha a sua API key em{' '}
+            Get your API key at{' '}
             <a
               href="https://platform.openai.com/api-keys"
               target="_blank"
@@ -202,14 +202,14 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage, onH
 
         {/* Mode Selection */}
         <div className="space-y-2">
-          <Label>Modo de Processamento</Label>
+          <Label>Processing Mode</Label>
           <Select value={mode} onValueChange={(value) => setMode(value as 'correct' | 'translate')}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="correct">Apenas Corrigir Português</SelectItem>
-              <SelectItem value="translate">Traduzir para Outro Idioma</SelectItem>
+              <SelectItem value="correct">Correct Portuguese Only</SelectItem>
+              <SelectItem value="translate">Translate to Another Language</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -217,17 +217,17 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage, onH
         {/* Language Selection (only shown in translate mode) */}
         {mode === 'translate' && (
           <div className="space-y-2">
-            <Label>Idioma de Destino</Label>
+            <Label>Target Language</Label>
             <Select value={targetLanguage} onValueChange={setTargetLanguage}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="en">Inglês</SelectItem>
-                <SelectItem value="es">Espanhol</SelectItem>
-                <SelectItem value="fr">Francês</SelectItem>
-                <SelectItem value="de">Alemão</SelectItem>
-                <SelectItem value="it">Italiano</SelectItem>
+                <SelectItem value="en">English</SelectItem>
+                <SelectItem value="es">Spanish</SelectItem>
+                <SelectItem value="fr">French</SelectItem>
+                <SelectItem value="de">German</SelectItem>
+                <SelectItem value="it">Italian</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -235,12 +235,12 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage, onH
 
         {/* Hotkey Configuration */}
         <div className="space-y-2">
-          <Label htmlFor="hotkey">Atalho de Teclado para Gravar</Label>
+          <Label htmlFor="hotkey">Recording Keyboard Shortcut</Label>
           <div className="flex gap-2">
             <Input
               id="hotkey"
               type="text"
-              placeholder="Pressione as teclas..."
+              placeholder="Press keys..."
               value={hotkey}
               onFocus={() => setIsRecordingHotkey(true)}
               onBlur={() => setIsRecordingHotkey(false)}
@@ -250,50 +250,50 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage, onH
               className={isRecordingHotkey ? 'border-primary' : ''}
             />
             <Button onClick={saveHotkey} disabled={isLoading || !hotkey}>
-              Guardar
+              Save
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
             {isRecordingHotkey
-              ? 'Pressione a combinação de teclas desejada...'
-              : 'Clique no campo e pressione a combinação (ex: Ctrl+Shift+R)'}
+              ? 'Press the desired key combination...'
+              : 'Click the field and press the combination (e.g. Ctrl+Shift+R)'}
           </p>
         </div>
 
         {/* GPT Model Selection */}
         <div className="space-y-2">
-          <Label>Modelo GPT (Correção/Tradução)</Label>
+          <Label>GPT Model (Correction/Translation)</Label>
           <Select value={gptModel} onValueChange={handleGptModelChange} disabled={isLoading}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="gpt-4o">GPT-4o (Recomendado - Melhor relação qualidade/preço)</SelectItem>
-              <SelectItem value="gpt-4o-mini">GPT-4o Mini (Mais rápido e económico)</SelectItem>
-              <SelectItem value="gpt-4-turbo">GPT-4 Turbo (Modelo legado)</SelectItem>
-              <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo (Mais barato, menor qualidade)</SelectItem>
+              <SelectItem value="gpt-4o">GPT-4o (Recommended - Best quality/price ratio)</SelectItem>
+              <SelectItem value="gpt-4o-mini">GPT-4o Mini (Faster and economical)</SelectItem>
+              <SelectItem value="gpt-4-turbo">GPT-4 Turbo (Legacy model)</SelectItem>
+              <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo (Cheaper, lower quality)</SelectItem>
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">
-            Modelo usado para corrigir e traduzir o texto transcrito. GPT-4o oferece o melhor equilíbrio.
+            Model used to correct and translate transcribed text. GPT-4o offers the best balance.
           </p>
         </div>
 
         {/* Whisper Model Selection */}
         <div className="space-y-2">
-          <Label>Modelo Whisper (Transcrição)</Label>
+          <Label>Whisper Model (Transcription)</Label>
           <Select value={whisperModel} onValueChange={handleWhisperModelChange} disabled={isLoading}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="gpt-4o-mini-transcribe">GPT-4o Mini Transcribe (Recomendado - Mais rápido e económico)</SelectItem>
-              <SelectItem value="gpt-4o-transcribe">GPT-4o Transcribe (Maior qualidade)</SelectItem>
-              <SelectItem value="whisper-1">Whisper-1 (Modelo legado)</SelectItem>
+              <SelectItem value="gpt-4o-mini-transcribe">GPT-4o Mini Transcribe (Recommended - Faster and economical)</SelectItem>
+              <SelectItem value="gpt-4o-transcribe">GPT-4o Transcribe (Higher quality)</SelectItem>
+              <SelectItem value="whisper-1">Whisper-1 (Legacy model)</SelectItem>
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">
-            Novos modelos GPT-4o suportam streaming em tempo real e melhor precisão
+            New GPT-4o models support real-time streaming and better accuracy
           </p>
         </div>
       </CardContent>

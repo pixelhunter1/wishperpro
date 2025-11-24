@@ -109,7 +109,7 @@ export const Recorder = forwardRef<RecorderHandle, RecorderProps>(({ mode, targe
         } else {
           console.log('[RECORDER] Audio blob too small, likely corrupted or too short');
           if (audioBlob.size > 0) {
-            toast.error('Áudio muito curto ou corrompido. Por favor, tente novamente.');
+            toast.error('Audio too short or corrupted. Please try again.');
           }
         }
 
@@ -164,13 +164,13 @@ export const Recorder = forwardRef<RecorderHandle, RecorderProps>(({ mode, targe
       // Provide specific error messages
       const err = error as Error;
       if (err.name === 'NotAllowedError') {
-        toast.error('Permissão de microfone negada. Verifica as definições do sistema.');
+        toast.error('Microphone permission denied. Check system settings.');
       } else if (err.name === 'NotFoundError') {
-        toast.error('Nenhum microfone encontrado. Conecta um microfone e tenta novamente.');
+        toast.error('No microphone found. Connect a microphone and try again.');
       } else if (err.name === 'NotReadableError') {
-        toast.error('Microfone em uso por outra aplicação. Fecha outras apps e tenta novamente.');
+        toast.error('Microphone in use by another application. Close other apps and try again.');
       } else {
-        toast.error(`Erro ao aceder ao microfone: ${err.message}`);
+        toast.error(`Error accessing microphone: ${err.message}`);
       }
     }
   };
@@ -208,7 +208,7 @@ export const Recorder = forwardRef<RecorderHandle, RecorderProps>(({ mode, targe
         isRecordingRef.current = false;
         // Clear chunks to prevent processing
         audioChunksRef.current = [];
-        toast.warning('Gravação muito curta. Mantenha pressionado por mais tempo.');
+        toast.warning('Recording too short. Hold longer.');
         return;
       }
 
@@ -247,13 +247,13 @@ export const Recorder = forwardRef<RecorderHandle, RecorderProps>(({ mode, targe
       });
 
       if (!transcriptionResult.success) {
-        throw new Error(transcriptionResult.error || 'Erro na transcrição');
+        throw new Error(transcriptionResult.error || 'Transcription error');
       }
 
       // Check if transcription is empty or too short (likely a hallucination or silence)
       if (!transcriptionResult.text || transcriptionResult.text.trim().length < 2) {
         console.log('[RECORDER] Empty or invalid transcription received');
-        toast.error('Não foi possível transcrever o áudio. Por favor, tente novamente com fala mais clara.');
+        toast.error('Could not transcribe audio. Please try again with clearer speech.');
         return;
       }
 
@@ -269,13 +269,13 @@ export const Recorder = forwardRef<RecorderHandle, RecorderProps>(({ mode, targe
       });
 
       if (!processResult.success) {
-        throw new Error(processResult.error || 'Erro no processamento');
+        throw new Error(processResult.error || 'Processing error');
       }
 
       // Validate processed text is not empty
       if (!processResult.text || processResult.text.trim().length < 2) {
         console.log('[RECORDER] Empty or invalid processed text received');
-        toast.error('Erro ao processar o texto. Por favor, tente novamente.');
+        toast.error('Error processing text. Please try again.');
         return;
       }
 
@@ -287,16 +287,16 @@ export const Recorder = forwardRef<RecorderHandle, RecorderProps>(({ mode, targe
       const pasteResult = await window.electronAPI.pasteToActiveWindow(processResult.text);
 
       if (pasteResult.success) {
-        toast.success('✓ Transcrição concluída e colada automaticamente!');
+        toast.success('✓ Transcription completed and pasted automatically!');
       } else {
         // Fallback to clipboard if auto-paste fails
         console.warn('[RECORDER] Auto-paste failed, falling back to clipboard:', pasteResult.error);
         await window.electronAPI.copyToClipboard(processResult.text);
-        toast.success('✓ Transcrição concluída e copiada para a área de transferência!');
+        toast.success('✓ Transcription completed and copied to clipboard!');
       }
     } catch (error) {
       console.error('Error processing audio:', error);
-      toast.error((error as Error).message || 'Erro ao processar áudio');
+      toast.error((error as Error).message || 'Error processing audio');
     } finally {
       setIsProcessing(false);
       isProcessingRef.current = false; // Always reset processing flag
@@ -313,10 +313,10 @@ export const Recorder = forwardRef<RecorderHandle, RecorderProps>(({ mode, targe
       if (!result.success) {
         throw new Error(result.error);
       }
-      toast.success('✓ Texto copiado!');
+      toast.success('✓ Text copied!');
     } catch (error) {
       console.error('Error copying to clipboard:', error);
-      toast.error('Erro ao copiar texto');
+      toast.error('Error copying text');
     }
   };
 
@@ -326,10 +326,10 @@ export const Recorder = forwardRef<RecorderHandle, RecorderProps>(({ mode, targe
     try {
       console.log('[RECORDER] User requested paste, calling pasteToActiveWindow');
       await window.electronAPI.pasteToActiveWindow(finalText);
-      toast.success('✓ Texto colado!');
+      toast.success('✓ Text pasted!');
     } catch (error) {
       console.error('Error pasting text:', error);
-      toast.error('Erro ao colar texto. Tente copiar e colar manualmente.');
+      toast.error('Error pasting text. Try copying and pasting manually.');
     }
   };
 
@@ -343,10 +343,10 @@ export const Recorder = forwardRef<RecorderHandle, RecorderProps>(({ mode, targe
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle>Gravação de Áudio</CardTitle>
+        <CardTitle>Audio Recording</CardTitle>
         <CardDescription>
-          <strong>Mouse:</strong> Mantenha o botão pressionado enquanto fala<br />
-          <strong>Teclado ({formatHotkey(hotkey)}):</strong> Pressione para iniciar, pressione novamente para parar
+          <strong>Mouse:</strong> Hold button while speaking<br />
+          <strong>Keyboard ({formatHotkey(hotkey)}):</strong> Press to start, press again to stop
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -393,10 +393,10 @@ export const Recorder = forwardRef<RecorderHandle, RecorderProps>(({ mode, targe
           </div>
           <div className="text-center">
             <p className="text-sm font-medium text-foreground">
-              {isRecording ? 'A gravar...' : isProcessing ? 'A processar...' : 'Pronto para gravar'}
+              {isRecording ? 'Recording...' : isProcessing ? 'Processing...' : 'Ready to record'}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              {isRecording ? 'Solte para parar' : isProcessing ? 'Aguarde' : 'Pressione e segure'}
+              {isRecording ? 'Release to stop' : isProcessing ? 'Please wait' : 'Press and hold'}
             </p>
           </div>
         </div>
@@ -404,7 +404,7 @@ export const Recorder = forwardRef<RecorderHandle, RecorderProps>(({ mode, targe
         {transcribedText && (
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <Badge variant="outline">Transcrito</Badge>
+              <Badge variant="outline">Transcribed</Badge>
             </div>
             <div className="rounded-md border p-3 text-sm">
               {transcribedText}
@@ -416,14 +416,14 @@ export const Recorder = forwardRef<RecorderHandle, RecorderProps>(({ mode, targe
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Badge variant="default">
-                {mode === 'correct' ? 'Corrigido' : 'Traduzido'}
+                {mode === 'correct' ? 'Corrected' : 'Translated'}
               </Badge>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={copyToClipboard}>
-                  Copiar
+                  Copy
                 </Button>
                 <Button size="sm" onClick={pasteText}>
-                  Colar
+                  Paste
                 </Button>
               </div>
             </div>

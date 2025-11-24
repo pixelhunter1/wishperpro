@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 interface RecorderProps {
   mode: 'correct' | 'translate';
   targetLanguage: string;
+  sourceLanguage: string;
   hotkey: string;
 }
 
@@ -26,7 +27,7 @@ const formatHotkey = (hotkey: string): string => {
     .replace('+', '+');
 };
 
-export const Recorder = forwardRef<RecorderHandle, RecorderProps>(({ mode, targetLanguage, hotkey }, ref) => {
+export const Recorder = forwardRef<RecorderHandle, RecorderProps>(({ mode, targetLanguage, sourceLanguage, hotkey }, ref) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [transcribedText, setTranscribedText] = useState('');
@@ -244,6 +245,7 @@ export const Recorder = forwardRef<RecorderHandle, RecorderProps>(({ mode, targe
       const transcriptionResult = await window.electronAPI.transcribeAudio({
         audioBlob: arrayBuffer,
         mimeType: audioBlob.type,
+        sourceLanguage: sourceLanguage,
       });
 
       if (!transcriptionResult.success) {

@@ -160,3 +160,17 @@ export const getOverlayPosition = (): { x: number; y: number } | null => {
   }
   return null;
 };
+
+export const saveSourceLanguage = (language: string): void => {
+  const stmt = db.prepare(`
+    INSERT OR REPLACE INTO settings (key, value)
+    VALUES (?, ?)
+  `);
+  stmt.run('source_language', language);
+};
+
+export const getSourceLanguage = (): string => {
+  const stmt = db.prepare('SELECT value FROM settings WHERE key = ?');
+  const row = stmt.get('source_language') as { value: string } | undefined;
+  return row?.value || 'pt'; // Default to Portuguese for backward compatibility
+};

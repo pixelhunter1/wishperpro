@@ -16,7 +16,9 @@ export interface ElectronAPI {
   getGptModel: () => Promise<{ success: boolean; model?: string; error?: string }>;
   saveWhisperModel: (model: string) => Promise<{ success: boolean; error?: string }>;
   getWhisperModel: () => Promise<{ success: boolean; model?: string; error?: string }>;
-  transcribeAudio: (data: { audioBlob: ArrayBuffer; mimeType?: string }) => Promise<{ success: boolean; text?: string; error?: string }>;
+  saveSourceLanguage: (language: string) => Promise<{ success: boolean; error?: string }>;
+  getSourceLanguage: () => Promise<{ success: boolean; language?: string; error?: string }>;
+  transcribeAudio: (data: { audioBlob: ArrayBuffer; mimeType?: string; sourceLanguage?: string }) => Promise<{ success: boolean; text?: string; error?: string }>;
   processText: (data: {
     text: string;
     mode: 'correct' | 'translate';

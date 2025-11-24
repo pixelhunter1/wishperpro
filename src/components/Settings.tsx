@@ -17,10 +17,12 @@ interface SettingsProps {
   setMode: (mode: 'correct' | 'translate') => void;
   targetLanguage: string;
   setTargetLanguage: (lang: string) => void;
+  sourceLanguage: string;
+  setSourceLanguage: (lang: string) => void;
   onHotkeyChange?: (hotkey: string) => void;
 }
 
-export function Settings({ mode, setMode, targetLanguage, setTargetLanguage, onHotkeyChange }: SettingsProps) {
+export function Settings({ mode, setMode, targetLanguage, setTargetLanguage, sourceLanguage, setSourceLanguage, onHotkeyChange }: SettingsProps) {
   const [apiKey, setApiKey] = useState('');
   const [hotkey, setHotkey] = useState('');
   const [gptModel, setGptModel] = useState('gpt-4o');
@@ -164,6 +166,21 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage, onH
     }
   };
 
+  const handleSourceLanguageChange = async (language: string) => {
+    try {
+      setSourceLanguage(language);
+      const result = await window.electronAPI.saveSourceLanguage(language);
+      if (result?.success) {
+        toast.success('Source language saved!');
+      } else {
+        throw new Error(result?.error || 'Unknown error');
+      }
+    } catch (error) {
+      console.error('Error saving source language:', error);
+      toast.error('Error saving source language');
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -200,6 +217,34 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage, onH
           </p>
         </div>
 
+        {/* Source Language Selection */}
+        <div className="space-y-2">
+          <Label>Source Language (Language You Speak)</Label>
+          <Select value={sourceLanguage} onValueChange={handleSourceLanguageChange} disabled={isLoading}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent side="bottom" className="max-h-[300px]">
+              <SelectItem value="pt">Portuguese</SelectItem>
+              <SelectItem value="en">English</SelectItem>
+              <SelectItem value="es">Spanish</SelectItem>
+              <SelectItem value="fr">French</SelectItem>
+              <SelectItem value="de">German</SelectItem>
+              <SelectItem value="it">Italian</SelectItem>
+              <SelectItem value="nl">Dutch</SelectItem>
+              <SelectItem value="ru">Russian</SelectItem>
+              <SelectItem value="zh">Chinese</SelectItem>
+              <SelectItem value="ja">Japanese</SelectItem>
+              <SelectItem value="ko">Korean</SelectItem>
+              <SelectItem value="ar">Arabic</SelectItem>
+              <SelectItem value="hi">Hindi</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Select the language you will speak during recording
+          </p>
+        </div>
+
         {/* Mode Selection */}
         <div className="space-y-2">
           <Label>Processing Mode</Label>
@@ -208,7 +253,7 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage, onH
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="correct">Correct Portuguese Only</SelectItem>
+              <SelectItem value="correct">Correct Text Only</SelectItem>
               <SelectItem value="translate">Translate to Another Language</SelectItem>
             </SelectContent>
           </Select>
@@ -217,19 +262,30 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage, onH
         {/* Language Selection (only shown in translate mode) */}
         {mode === 'translate' && (
           <div className="space-y-2">
-            <Label>Target Language</Label>
+            <Label>Target Language (Translate To)</Label>
             <Select value={targetLanguage} onValueChange={setTargetLanguage}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent side="bottom" className="max-h-[300px]">
+                <SelectItem value="pt">Portuguese</SelectItem>
                 <SelectItem value="en">English</SelectItem>
                 <SelectItem value="es">Spanish</SelectItem>
                 <SelectItem value="fr">French</SelectItem>
                 <SelectItem value="de">German</SelectItem>
                 <SelectItem value="it">Italian</SelectItem>
+                <SelectItem value="nl">Dutch</SelectItem>
+                <SelectItem value="ru">Russian</SelectItem>
+                <SelectItem value="zh">Chinese</SelectItem>
+                <SelectItem value="ja">Japanese</SelectItem>
+                <SelectItem value="ko">Korean</SelectItem>
+                <SelectItem value="ar">Arabic</SelectItem>
+                <SelectItem value="hi">Hindi</SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">
+              Select the language you want to translate to
+            </p>
           </div>
         )}
 

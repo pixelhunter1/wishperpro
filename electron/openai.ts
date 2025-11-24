@@ -5,6 +5,7 @@ export const transcribeAudio = async (
   audioBuffer: ArrayBuffer,
   apiKey: string,
   whisperModel: string,
+  sourceLanguage: string,
   mimeType?: string
 ): Promise<string> => {
   const openai = new OpenAI({ apiKey });
@@ -66,7 +67,7 @@ export const transcribeAudio = async (
     transcription = await openai.audio.transcriptions.create({
       file: audioFile,
       model: whisperModel, // Use selected model
-      language: 'pt', // Specify Portuguese for better accuracy (supported by all models)
+      language: sourceLanguage, // Use dynamic source language selected by user
       // NO PROMPT: Prompts should only be used for specific words/names, not general context
       // Using a prompt can cause Whisper to return the prompt text on silent/short audio
       response_format: isNewModel ? 'json' : 'verbose_json', // New models support json or text
@@ -142,6 +143,7 @@ export const transcribeAudioStream = async (
   audioBuffer: ArrayBuffer,
   apiKey: string,
   whisperModel: string,
+  sourceLanguage: string,
   mimeType?: string,
   onProgress?: (text: string) => void
 ): Promise<string> => {
@@ -183,7 +185,7 @@ export const transcribeAudioStream = async (
   // Only new models support streaming
   if (!isNewModel) {
     // Fall back to non-streaming for whisper-1
-    return transcribeAudio(audioBuffer, apiKey, whisperModel, mimeType);
+    return transcribeAudio(audioBuffer, apiKey, whisperModel, sourceLanguage, mimeType);
   }
 
   // Check minimum audio size for streaming as well
@@ -202,7 +204,7 @@ export const transcribeAudioStream = async (
   const streamResponse = await openai.audio.transcriptions.create({
     file: file as any,
     model: whisperModel,
-    language: 'pt', // Specify Portuguese for better accuracy
+    language: sourceLanguage, // Use dynamic source language selected by user
     // NO PROMPT: Prompts can cause Whisper to return the prompt text on silent/short audio
     response_format: 'text',
     stream: true, // Enable streaming
@@ -296,6 +298,14 @@ Retorna APENAS o texto corrigido.`;
       es: 'Espanhol',
       fr: 'Francês',
       de: 'Alemão',
+      it: 'Italiano',
+      nl: 'Holandês',
+      ru: 'Russo',
+      zh: 'Chinês',
+      ja: 'Japonês',
+      ko: 'Coreano',
+      ar: 'Árabe',
+      hi: 'Hindi',
     };
 
     const targetLangName = languageNames[targetLanguage] || targetLanguage;

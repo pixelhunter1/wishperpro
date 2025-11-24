@@ -9,6 +9,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getGptModel: () => ipcRenderer.invoke('get-gpt-model'),
   saveWhisperModel: (model) => ipcRenderer.invoke('save-whisper-model', model),
   getWhisperModel: () => ipcRenderer.invoke('get-whisper-model'),
+  saveSourceLanguage: (language) => ipcRenderer.invoke('save-source-language', language),
+  getSourceLanguage: () => ipcRenderer.invoke('get-source-language'),
   transcribeAudio: (data) => ipcRenderer.invoke('transcribe-audio', data),
   processText: (data) => ipcRenderer.invoke('process-text', data),
   copyToClipboard: (text) => ipcRenderer.invoke('copy-to-clipboard', text),

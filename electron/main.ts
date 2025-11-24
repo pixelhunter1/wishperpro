@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain, clipboard, globalShortcut, Menu, screen } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { initDatabase, saveTranscription, getTranscriptions, saveApiKey, getApiKey, saveHotkey, getHotkey, deleteTranscription, clearAllTranscriptions, saveGptModel, getGptModel, saveWhisperModel, getWhisperModel, saveOverlayPosition, getOverlayPosition } from './db';
+import { initDatabase, saveTranscription, getTranscriptions, saveApiKey, getApiKey, saveHotkey, getHotkey, deleteTranscription, clearAllTranscriptions, saveGptModel, getGptModel, saveWhisperModel, getWhisperModel, saveOverlayPosition, getOverlayPosition, saveSourceLanguage, getSourceLanguage } from './db';
 import { transcribeAudio, processText } from './openai';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -203,7 +203,7 @@ ipcMain.handle('get-api-key', async () => {
   }
 });
 
-ipcMain.handle('transcribe-audio', async (_event, data: { audioBlob: ArrayBuffer; mimeType?: string }) => {
+ipcMain.handle('transcribe-audio', async (_event, data: { audioBlob: ArrayBuffer; mimeType?: string; sourceLanguage?: string }) => {
   try {
     const apiKey = getApiKey();
     if (!apiKey) {
@@ -211,7 +211,8 @@ ipcMain.handle('transcribe-audio', async (_event, data: { audioBlob: ArrayBuffer
     }
 
     const whisperModel = getWhisperModel();
-    const transcription = await transcribeAudio(data.audioBlob, apiKey, whisperModel, data.mimeType);
+    const sourceLanguage = data.sourceLanguage || getSourceLanguage();
+    const transcription = await transcribeAudio(data.audioBlob, apiKey, whisperModel, sourceLanguage, data.mimeType);
     return { success: true, text: transcription };
   } catch (error) {
     return { success: false, error: (error as Error).message };
@@ -487,5 +488,24 @@ ipcMain.handle('hide-overlay-window', async () => {
 ipcMain.on('audio-level', (_event, level: number) => {
   if (overlayWindow && !overlayWindow.isDestroyed()) {
     overlayWindow.webContents.send('update-audio-level', level);
+  }
+});
+
+// Source language handlers
+ipcMain.handle('save-source-language', async (_event, language: string) => {
+  try {
+    saveSourceLanguage(language);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+ipcMain.handle('get-source-language', async () => {
+  try {
+    const language = getSourceLanguage();
+    return { success: true, language };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
   }
 });

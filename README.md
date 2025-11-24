@@ -36,9 +36,9 @@ Perfect for:
 - **Works in Fullscreen**: Overlay stays visible even over fullscreen apps
 
 ### 🤖 **AI-Powered Processing**
-- **Accurate Transcription**: Powered by OpenAI Whisper (Portuguese optimized)
-- **Smart Correction**: Automatically fixes grammar and punctuation
-- **Multi-Language Translation**: Translate to English, Spanish, French, German, Italian, and more
+- **Multi-Language Transcription**: Powered by OpenAI Whisper - speak in any of 13 supported languages
+- **Smart Correction**: Automatically fixes grammar and punctuation in your spoken language
+- **Universal Translation**: Translate between any combination of 13 languages
 - **Context-Aware**: GPT-4 ensures natural, fluent results
 
 ### ⚡ **Seamless Integration**
@@ -131,10 +131,11 @@ npm run build:all
 1. Launch the app
 2. Go to **Settings** tab
 3. Paste your OpenAI API Key
-4. Choose your mode:
-   - **Correct**: Fixes grammar in Portuguese
-   - **Translate**: Translates to another language
-5. (Optional) Customize the global hotkey
+4. Select your **Source Language** (the language you will speak)
+5. Choose your mode:
+   - **Correct Text Only**: Fixes grammar in your spoken language
+   - **Translate to Another Language**: Translates to your selected target language
+6. (Optional) Customize the global hotkey
 
 ### Building for Production
 
@@ -163,10 +164,11 @@ Installers will be in `release/`:
 5. Release - email text appears instantly
 
 ### Multilingual Communication
-1. Set mode to **Translate**
-2. Choose target language (e.g., English)
-3. Speak in Portuguese
-4. Get perfect English translation at cursor
+1. Set **Source Language** to your speaking language (e.g., French)
+2. Set mode to **Translate to Another Language**
+3. Choose **Target Language** (e.g., English)
+4. Speak in French
+5. Get perfect English translation at cursor
 
 ### Voice Notes
 1. Open any text editor
@@ -179,31 +181,51 @@ Installers will be in `release/`:
 
 ### Modes
 
-**Correct Mode** (Default)
-- Transcribes in Portuguese
+**Correct Text Only Mode**
+- Transcribes in your selected source language
 - Fixes grammar, punctuation, and spelling
 - Maintains original meaning and tone
+- Perfect for writing in your native language
 
-**Translate Mode**
-- Transcribes in Portuguese
-- Translates to target language
-- Natural, fluent output
+**Translate to Another Language Mode**
+- Transcribes in your source language
+- Translates to any of the 13 supported target languages
+- Natural, fluent output with proper context
+- Perfect for multilingual communication
 
-### Supported Languages
+### Supported Languages (13 Total)
 
+Both source (what you speak) and target (translation) support:
+
+- 🇵🇹 Portuguese
 - 🇬🇧 English
 - 🇪🇸 Spanish
 - 🇫🇷 French
 - 🇩🇪 German
 - 🇮🇹 Italian
-- 🇵🇹 Portuguese (source)
+- 🇳🇱 Dutch
+- 🇷🇺 Russian
+- 🇨🇳 Chinese
+- 🇯🇵 Japanese
+- 🇰🇷 Korean
+- 🇸🇦 Arabic
+- 🇮🇳 Hindi
+
+**Examples:**
+- Speak English → Translate to Japanese
+- Speak French → Correct French text
+- Speak Spanish → Translate to Chinese
+- Speak Portuguese → Translate to English
+- Any combination of the 13 languages!
 
 ### Customization
 
+- **Source Language**: Choose the language you will speak (13 options)
+- **Target Language**: Choose translation target when in Translate mode (13 options)
 - **Hotkey**: Change in Settings (default: `Cmd/Ctrl+X`)
-- **GPT Model**: Choose between GPT-4 variants
-- **Whisper Model**: Select transcription quality
-- **Overlay Position**: Drag the floating widget anywhere
+- **GPT Model**: Choose between GPT-4o, GPT-4o Mini, GPT-4 Turbo variants
+- **Whisper Model**: Select between GPT-4o Transcribe models or legacy Whisper-1
+- **Overlay Position**: Drag the floating widget anywhere on screen
 
 ---
 

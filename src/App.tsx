@@ -9,6 +9,7 @@ import { History } from '@/components/History'
 function App() {
   const [mode, setMode] = useState<'correct' | 'translate'>('correct')
   const [targetLanguage, setTargetLanguage] = useState('en')
+  const [sourceLanguage, setSourceLanguage] = useState('pt')
   const [hotkey, setHotkey] = useState('CommandOrControl+Shift+R')
 
   // Refs to control recording from global hotkey
@@ -28,15 +29,20 @@ function App() {
     }
   }, []);
 
-  // Load hotkey from database on mount
+  // Load hotkey and source language from database on mount
   useEffect(() => {
-    const loadHotkey = async () => {
-      const result = await window.electronAPI.getHotkey();
-      if (result.success && result.hotkey) {
-        setHotkey(result.hotkey);
+    const loadSettings = async () => {
+      const hotkeyResult = await window.electronAPI.getHotkey();
+      if (hotkeyResult.success && hotkeyResult.hotkey) {
+        setHotkey(hotkeyResult.hotkey);
+      }
+
+      const sourceLanguageResult = await window.electronAPI.getSourceLanguage();
+      if (sourceLanguageResult.success && sourceLanguageResult.language) {
+        setSourceLanguage(sourceLanguageResult.language);
       }
     };
-    loadHotkey();
+    loadSettings();
   }, []);
 
   // Global hotkey listener - works regardless of which tab is active or if app is minimized
@@ -82,6 +88,7 @@ function App() {
           <Recorder
             mode={mode}
             targetLanguage={targetLanguage}
+            sourceLanguage={sourceLanguage}
             hotkey={hotkey}
             ref={recorderRef}
           />
@@ -103,6 +110,8 @@ function App() {
               setMode={setMode}
               targetLanguage={targetLanguage}
               setTargetLanguage={setTargetLanguage}
+              sourceLanguage={sourceLanguage}
+              setSourceLanguage={setSourceLanguage}
               onHotkeyChange={setHotkey}
             />
           </TabsContent>

@@ -87,20 +87,11 @@ function App() {
           />
         </div>
 
-        <Tabs defaultValue="recorder" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="recorder">Gravar</TabsTrigger>
+        <Tabs defaultValue="history" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="history">Histórico</TabsTrigger>
             <TabsTrigger value="settings">Configurações</TabsTrigger>
           </TabsList>
-
-          <TabsContent value="recorder" className="mt-6">
-            <Recorder
-              mode={mode}
-              targetLanguage={targetLanguage}
-              hotkey={hotkey}
-            />
-          </TabsContent>
 
           <TabsContent value="history" className="mt-6">
             <History />

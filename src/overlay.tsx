@@ -40,29 +40,35 @@ function Overlay() {
       timeRef.current += 0.05;
       ctx.clearRect(0, 0, width, height);
 
-      // Determinar estado e cor
+      // Determinar estado
       const hasAudio = audioLevel > 10;
-      const color = hasAudio ? '#ef4444' : '#8b9dc3'; // Azul acinzentado mais visível
+
+      // Cores das ondas - ciano, magenta/rosa, verde (como na imagem)
+      const waveColors = hasAudio
+        ? ['#ef4444', '#ff6b6b', '#ff8787'] // Vermelho quando a gravar
+        : ['#00e5ff', '#ff4da6', '#39ff14']; // Ciano, magenta, verde quando inativo
 
       // Amplitude baseada no nível de áudio (normalizado)
       const baseAmplitude = hasAudio ? Math.min(audioLevel / 100, 1) * 12 + 6 : 4;
 
-      // Criar gradiente para efeito visual mais bonito
-      const gradient = ctx.createLinearGradient(0, 0, width, 0);
-      gradient.addColorStop(0, color + '40');
-      gradient.addColorStop(0.5, color);
-      gradient.addColorStop(1, color + '40');
-
-      ctx.strokeStyle = gradient;
-      ctx.lineWidth = 2.5;
+      ctx.lineWidth = 2;
       ctx.lineCap = 'round';
 
-      // Desenhar 3 ondas com diferentes velocidades e fases para efeito mais fluido
+      // Desenhar 3 ondas com cores diferentes
       for (let wave = 0; wave < 3; wave++) {
+        const color = waveColors[wave];
+
+        // Criar gradiente para cada onda
+        const gradient = ctx.createLinearGradient(0, 0, width, 0);
+        gradient.addColorStop(0, color + '40');
+        gradient.addColorStop(0.5, color);
+        gradient.addColorStop(1, color + '40');
+
+        ctx.strokeStyle = gradient;
         ctx.beginPath();
-        const phaseOffset = wave * Math.PI * 0.6;
-        const speedMultiplier = 1 + wave * 0.3;
-        const amplitudeMultiplier = 1 - wave * 0.2;
+        const phaseOffset = wave * Math.PI * 0.7;
+        const speedMultiplier = 1 + wave * 0.25;
+        const amplitudeMultiplier = 1 - wave * 0.15;
 
         for (let x = 0; x < width; x++) {
           // Criar onda sinusoidal suave com múltiplas frequências para movimento orgânico

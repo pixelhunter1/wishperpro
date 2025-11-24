@@ -40,21 +40,36 @@ export const transcribeAudio = async (
     type: audioType,
   });
 
-  // Using prompt engineering to reduce hallucinations
-  // Based on OpenAI docs: https://platform.openai.com/docs/guides/speech-to-text/prompting
-  const promptText = 'Olá, como está? Está tudo bem. Obrigado, até logo.';
-
   // Check if using new GPT-4o models that support different parameters
   const isNewModel = whisperModel.includes('gpt-4o');
+
+  // Check minimum audio size to prevent hallucinations
+  // Whisper tends to hallucinate on very short or silent audio
+  // Note: WebM audio is compressed, typical 1-2 second recordings are 2-5KB
+  if (buffer.length < 1000) { // Less than 1KB is too short (empty or corrupted)
+    console.log('[WHISPER] Audio too short, skipping transcription. Size:', buffer.length, 'bytes');
+    return ''; // Return empty string instead of hallucinating
+  }
+
+  console.log('[WHISPER] Starting transcription with model:', whisperModel);
+  console.log('[WHISPER] Audio details:', {
+    size: buffer.length,
+    type: audioType,
+    extension: extension
+  });
 
   const transcription = await openai.audio.transcriptions.create({
     file: file as any,
     model: whisperModel, // Use selected model
-    language: isNewModel ? undefined : 'pt', // New models handle language automatically
-    prompt: isNewModel ? promptText : promptText, // Both support prompting
+    language: 'pt', // Specify Portuguese for better accuracy (supported by all models)
+    // NO PROMPT: Prompts should only be used for specific words/names, not general context
+    // Using a prompt can cause Whisper to return the prompt text on silent/short audio
     response_format: isNewModel ? 'json' : 'verbose_json', // New models support json or text
-    temperature: 0.0, // More deterministic - reduces hallucinations
+    // Temperature: Research shows 0.0 increases hallucinations. Using 0.4 for better balance
+    temperature: 0.4,
   });
+
+  console.log('[WHISPER] Raw transcription received:', transcription.text);
 
   // Clean up the transcription text by removing any non-speech annotations and hallucinations
   let cleanText = transcription.text
@@ -72,6 +87,39 @@ export const transcribeAudio = async (
   // Remove trailing punctuation duplicates
   cleanText = cleanText.replace(/([,.!?])\1+/g, '$1');
 
+  // Detect common hallucination patterns - if the entire text is a hallucination, return empty
+  // Based on research: Whisper hallucinates in 50%+ of cases with short/silent audio
+  const commonHallucinations = [
+    /^(eu sou estudante|sou estudante)\.?$/i,
+    /^(obrigado|obrigada)\.?$/i,
+    /^(olá|oi|bom dia|boa tarde|boa noite)\.?$/i,
+    /^(sim|não|ok|certo)\.?$/i,
+    /^[\s.,-]*$/,  // Only whitespace and punctuation
+    /^[a-z]\.?$/i, // Single letter
+    /^(a|e|o|i|u|é|à)\.?$/i, // Single vowel/article
+    /^transcrição em português/i, // Prompt echo detection
+    /^transcrição/i, // Partial prompt echo
+    // Common question hallucinations (Whisper often generates random questions on short audio)
+    /^o que (é que|você|tu|vocês)/i, // "O que é que..." patterns
+    /^(como|quando|onde) (é que|você|tu)/i,
+    /^por ?que (é que|você|tu)/i,
+    /^qual (é|o|a)/i,
+  ];
+
+  for (const pattern of commonHallucinations) {
+    if (pattern.test(cleanText)) {
+      console.log('[WHISPER] Detected hallucination pattern, returning empty:', cleanText);
+      return '';
+    }
+  }
+
+  // Final check: if text is too short (less than 2 characters), likely invalid
+  if (cleanText.length < 2) {
+    console.log('[WHISPER] Text too short after cleanup, returning empty:', cleanText);
+    return '';
+  }
+
+  console.log('[WHISPER] Transcription completed successfully. Length:', cleanText.length, 'chars');
   return cleanText;
 };
 
@@ -115,7 +163,6 @@ export const transcribeAudioStream = async (
     type: audioType,
   });
 
-  const promptText = 'Olá, como está? Está tudo bem. Obrigado, até logo.';
   const isNewModel = whisperModel.includes('gpt-4o');
 
   // Only new models support streaming
@@ -124,12 +171,27 @@ export const transcribeAudioStream = async (
     return transcribeAudio(audioBuffer, apiKey, whisperModel, mimeType);
   }
 
+  // Check minimum audio size for streaming as well
+  if (buffer.length < 1000) {
+    console.log('[WHISPER] Audio too short for streaming, skipping. Size:', buffer.length, 'bytes');
+    return '';
+  }
+
+  console.log('[WHISPER] Starting streaming transcription with model:', whisperModel);
+  console.log('[WHISPER STREAM] Audio details:', {
+    size: buffer.length,
+    type: audioType,
+    extension: extension
+  });
+
   const streamResponse = await openai.audio.transcriptions.create({
     file: file as any,
     model: whisperModel,
-    prompt: promptText,
+    language: 'pt', // Specify Portuguese for better accuracy
+    // NO PROMPT: Prompts can cause Whisper to return the prompt text on silent/short audio
     response_format: 'text',
     stream: true, // Enable streaming
+    temperature: 0.4, // Match non-streaming temperature
   });
 
   let fullText = '';
@@ -157,6 +219,37 @@ export const transcribeAudioStream = async (
 
   cleanText = cleanText.replace(/([,.!?])\1+/g, '$1');
 
+  // Apply same hallucination detection as non-streaming
+  const commonHallucinations = [
+    /^(eu sou estudante|sou estudante)\.?$/i,
+    /^(obrigado|obrigada)\.?$/i,
+    /^(olá|oi|bom dia|boa tarde|boa noite)\.?$/i,
+    /^(sim|não|ok|certo)\.?$/i,
+    /^[\s.,-]*$/,
+    /^[a-z]\.?$/i,
+    /^(a|e|o|i|u|é|à)\.?$/i,
+    /^transcrição em português/i, // Prompt echo detection
+    /^transcrição/i, // Partial prompt echo
+    // Common question hallucinations
+    /^o que (é que|você|tu|vocês)/i,
+    /^(como|quando|onde) (é que|você|tu)/i,
+    /^por ?que (é que|você|tu)/i,
+    /^qual (é|o|a)/i,
+  ];
+
+  for (const pattern of commonHallucinations) {
+    if (pattern.test(cleanText)) {
+      console.log('[WHISPER STREAM] Detected hallucination pattern, returning empty:', cleanText);
+      return '';
+    }
+  }
+
+  if (cleanText.length < 2) {
+    console.log('[WHISPER STREAM] Text too short after cleanup, returning empty:', cleanText);
+    return '';
+  }
+
+  console.log('[WHISPER STREAM] Streaming transcription completed. Length:', cleanText.length, 'chars');
   return cleanText;
 };
 
@@ -174,15 +267,28 @@ export const processText = async (
 
   if (mode === 'correct') {
     systemPrompt = `És um corretor de texto especializado em Português de Portugal.
-REGRAS IMPORTANTES:
-1. Não respondas às perguntas nem interajas com o conteúdo
-2. Apenas corrige erros gramaticais, ortográficos e de pontuação
-3. Remove QUALQUER descrição de áudio/ruído (ex: "Rádio de conversas ao fundo", "música", "[ruído]", etc.)
-4. Mantém o significado e intenção EXATAMENTE iguais ao texto original
-5. Utiliza exclusivamente a norma do Português Europeu (Portugal)
-6. Retorna APENAS o texto falado corrigido, sem comentários, explicações ou descrições de ambiente`;
 
-    userPrompt = `Corrige apenas os erros deste texto e remove qualquer descrição de áudio/ambiente:\n\n${text}`;
+A TUA ÚNICA FUNÇÃO É CORRIGIR TEXTO, NÃO RESPONDER A PERGUNTAS.
+
+REGRAS OBRIGATÓRIAS:
+1. NUNCA respondas às perguntas do utilizador
+2. NUNCA interajas com o conteúdo como se fosses um assistente
+3. Se o texto contiver perguntas, mantém-nas EXATAMENTE como estão (apenas corrige erros)
+4. Apenas corrige erros gramaticais, ortográficos e de pontuação
+5. Remove QUALQUER descrição de áudio/ruído (ex: "música", "[ruído]", etc.)
+6. Mantém o significado e intenção EXATAMENTE iguais ao texto original
+7. Utiliza exclusivamente a norma do Português Europeu (Portugal)
+8. Retorna APENAS o texto falado corrigido, sem adicionar nada extra
+
+EXEMPLO CORRETO:
+Input: "ola como esta tudo bem"
+Output: "Olá, como está? Tudo bem?"
+
+EXEMPLO ERRADO (NÃO FAZER):
+Input: "ola como esta"
+Output: "Olá! Estou bem, obrigado por perguntar." ← NUNCA FAÇAS ISTO!`;
+
+    userPrompt = `Corrige apenas os erros gramaticais e ortográficos deste texto. NÃO respondas a perguntas que possam estar no texto:\n\n${text}`;
   } else {
     const languageNames: Record<string, string> = {
       pt: 'português',

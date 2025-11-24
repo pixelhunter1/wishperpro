@@ -35,7 +35,7 @@ const registerHotkey = () => {
   const hotkey = getHotkey();
 
   const ret = globalShortcut.register(hotkey, () => {
-    if (mainWindow) {
+    if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('toggle-recording');
     }
   });
@@ -151,26 +151,87 @@ ipcMain.handle('paste-to-active-window', async (_event, text: string) => {
   try {
     console.log('[PASTE] Starting auto-paste...', text.substring(0, 50));
 
+    // Helper function to verify clipboard content
+    const verifyClipboard = (expectedText: string): boolean => {
+      const currentClipboard = clipboard.readText();
+      const matches = currentClipboard === expectedText;
+      if (!matches) {
+        console.log('[PASTE] Clipboard verification failed');
+        console.log('[PASTE] Expected:', expectedText.substring(0, 50));
+        console.log('[PASTE] Got:', currentClipboard.substring(0, 50));
+      }
+      return matches;
+    };
+
     // Clear clipboard first to prevent old text from being pasted
     clipboard.clear();
     console.log('[PASTE] Clipboard cleared');
 
-    // Copy text to clipboard
-    clipboard.writeText(text);
-    console.log('[PASTE] Text copied to clipboard');
+    // Verify clipboard is actually empty
+    let clearVerified = false;
+    for (let i = 0; i < 3; i++) {
+      await new Promise(resolve => setTimeout(resolve, 50));
+      if (clipboard.readText() === '') {
+        clearVerified = true;
+        console.log('[PASTE] Clipboard clear verified');
+        break;
+      }
+    }
 
-    // Longer delay to ensure clipboard is ready
-    await new Promise(resolve => setTimeout(resolve, 200));
+    if (!clearVerified) {
+      console.warn('[PASTE] Clipboard clear could not be verified, proceeding anyway');
+    }
 
+    // Try to write text to clipboard with verification and retry
+    const maxAttempts = 5;
+    let writeSuccess = false;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      console.log(`[PASTE] Write attempt ${attempt}/${maxAttempts}`);
+
+      // Write text to clipboard
+      clipboard.writeText(text);
+
+      // Wait for clipboard to sync
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Verify the clipboard contains our text
+      if (verifyClipboard(text)) {
+        console.log('[PASTE] Clipboard write verified successfully');
+        writeSuccess = true;
+        break;
+      }
+
+      // If not the last attempt, wait before retry
+      if (attempt < maxAttempts) {
+        console.log('[PASTE] Retrying clipboard write...');
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+
+    if (!writeSuccess) {
+      throw new Error('Failed to write text to clipboard after ' + maxAttempts + ' attempts');
+    }
+
+    // Execute paste command based on platform
+    const pasteStartTime = Date.now();
     if (process.platform === 'darwin') {
-      // macOS: Use AppleScript to paste
+      // macOS: Use AppleScript to type text directly instead of Cmd+V
+      // This avoids clipboard race conditions completely
       const { exec } = await import('child_process');
       const { promisify } = await import('util');
       const execAsync = promisify(exec);
 
-      console.log('Executing paste command...');
-      const result = await execAsync(`osascript -e 'tell application "System Events" to keystroke "v" using command down'`);
-      console.log('Paste command executed:', result);
+      // Escape text for AppleScript (escape backslashes and quotes)
+      const escapedText = text
+        .replace(/\\/g, '\\\\')
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, '\\n')
+        .replace(/\r/g, '\\r');
+
+      console.log('[PASTE] Typing text directly via AppleScript...');
+      const result = await execAsync(`osascript -e 'tell application "System Events" to keystroke "${escapedText}"'`);
+      console.log('[PASTE] Text typed successfully:', result);
     } else if (process.platform === 'linux') {
       // Linux: Use xdotool
       const { exec } = await import('child_process');
@@ -187,13 +248,12 @@ ipcMain.handle('paste-to-active-window', async (_event, text: string) => {
       await execAsync('powershell -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait(\'^v\')"');
     }
 
-    // Extra delay after paste
-    await new Promise(resolve => setTimeout(resolve, 100));
-    console.log('Auto-paste completed');
+    const pasteElapsed = Date.now() - pasteStartTime;
+    console.log(`[PASTE] Auto-paste completed successfully (paste took ${pasteElapsed}ms)`);
 
     return { success: true };
   } catch (error) {
-    console.error('Auto-paste error:', error);
+    console.error('[PASTE] Auto-paste error:', error);
     return { success: false, error: (error as Error).message };
   }
 });

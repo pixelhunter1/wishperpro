@@ -17,12 +17,14 @@ export function Recorder({ mode, targetLanguage }: RecorderProps) {
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const isRecordingRef = useRef(false); // Track recording state without triggering re-renders
+  const isProcessingRef = useRef(false); // Prevent duplicate processing
 
+  // Register hotkey listener ONCE on mount, not on every state change
   useEffect(() => {
-    // Listen for hotkey toggle from main process
     const handleToggle = () => {
-      console.log('Hotkey pressed, isRecording:', isRecording);
-      if (isRecording) {
+      console.log('[RECORDER] Hotkey pressed, isRecordingRef:', isRecordingRef.current);
+      if (isRecordingRef.current) {
         stopRecording();
       } else {
         startRecording();
@@ -30,9 +32,15 @@ export function Recorder({ mode, targetLanguage }: RecorderProps) {
     };
 
     if (window.electronAPI?.onToggleRecording) {
+      console.log('[RECORDER] Registering hotkey listener (once on mount)');
       window.electronAPI.onToggleRecording(handleToggle);
+
+      // Cleanup on unmount
+      return () => {
+        console.log('[RECORDER] Removing hotkey listener on unmount');
+      };
     }
-  }, [isRecording]);
+  }, []); // Empty deps = runs once on mount
 
   const startRecording = async () => {
     try {
@@ -64,15 +72,23 @@ export function Recorder({ mode, targetLanguage }: RecorderProps) {
       audioChunksRef.current = [];
 
       mediaRecorder.ondataavailable = (event) => {
+        console.log('[RECORDER] Data available, chunk size:', event.data.size, 'bytes');
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
         }
       };
 
       mediaRecorder.onstop = async () => {
+        console.log('[RECORDER] MediaRecorder stopped, chunks count:', audioChunksRef.current.length);
         const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType });
-        console.log('Audio blob created:', audioBlob.size, 'bytes, type:', audioBlob.type);
+        console.log('[RECORDER] Audio blob created:', audioBlob.size, 'bytes, type:', audioBlob.type);
+
+        // Process audio BEFORE clearing chunks (to avoid race conditions)
         await processAudio(audioBlob);
+
+        // Clear audio chunks after processing to prevent contamination of next recording
+        audioChunksRef.current = [];
+        console.log('[RECORDER] Audio chunks cleared after processing');
 
         // Stop all tracks to release microphone
         stream.getTracks().forEach(track => track.stop());
@@ -80,6 +96,7 @@ export function Recorder({ mode, targetLanguage }: RecorderProps) {
 
       mediaRecorder.start();
       setIsRecording(true);
+      isRecordingRef.current = true; // Sync ref with state
     } catch (error) {
       console.error('Error starting recording:', error);
       toast.error('Erro ao aceder ao microfone');
@@ -91,19 +108,31 @@ export function Recorder({ mode, targetLanguage }: RecorderProps) {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
-      setIsProcessing(true);
+      isRecordingRef.current = false; // Sync ref with state
+      // Note: setIsProcessing(true) will be called in processAudio()
     }
   };
 
   const processAudio = async (audioBlob: Blob) => {
+    // CRITICAL: Prevent duplicate processing if already in progress
+    if (isProcessingRef.current) {
+      console.log('[RECORDER] Already processing audio, ignoring duplicate call');
+      return;
+    }
+
     try {
-      // Check minimum audio size (at least 1KB)
+      isProcessingRef.current = true; // Mark as processing
+      setIsProcessing(true);
+
+      // Check minimum audio size (at least 1KB = 1000 bytes)
+      // WebM audio is highly compressed, so even 1-2 seconds can be < 5KB
       if (audioBlob.size < 1000) {
-        toast.error('Áudio muito curto. Por favor, grave pelo menos 1 segundo.');
+        console.log('[RECORDER] Audio too short:', audioBlob.size, 'bytes');
+        toast.error('Áudio muito curto. Por favor, grave pelo menos 1 segundo de fala.');
         return;
       }
 
-      console.log('Processing audio blob:', {
+      console.log('[RECORDER] Processing audio blob:', {
         size: audioBlob.size,
         type: audioBlob.type,
         sizeKB: (audioBlob.size / 1024).toFixed(2) + ' KB'
@@ -113,46 +142,59 @@ export function Recorder({ mode, targetLanguage }: RecorderProps) {
       const arrayBuffer = await audioBlob.arrayBuffer();
 
       // Step 1: Transcribe audio
+      console.log('[RECORDER] Sending audio for transcription...');
       const transcriptionResult = await window.electronAPI.transcribeAudio({
         audioBlob: arrayBuffer,
         mimeType: audioBlob.type,
       });
 
-      if (!transcriptionResult.success || !transcriptionResult.text) {
+      if (!transcriptionResult.success) {
         throw new Error(transcriptionResult.error || 'Erro na transcrição');
       }
 
+      // Check if transcription is empty or too short (likely a hallucination or silence)
+      if (!transcriptionResult.text || transcriptionResult.text.trim().length < 2) {
+        console.log('[RECORDER] Empty or invalid transcription received');
+        toast.error('Não foi possível transcrever o áudio. Por favor, tente novamente com fala mais clara.');
+        return;
+      }
+
+      console.log('[RECORDER] Transcription received:', transcriptionResult.text);
       setTranscribedText(transcriptionResult.text);
 
       // Step 2: Process text (correct or translate)
+      console.log('[RECORDER] Processing transcribed text...');
       const processResult = await window.electronAPI.processText({
         text: transcriptionResult.text,
         mode,
         targetLanguage,
       });
 
-      if (!processResult.success || !processResult.text) {
+      if (!processResult.success) {
         throw new Error(processResult.error || 'Erro no processamento');
       }
 
+      // Validate processed text is not empty
+      if (!processResult.text || processResult.text.trim().length < 2) {
+        console.log('[RECORDER] Empty or invalid processed text received');
+        toast.error('Erro ao processar o texto. Por favor, tente novamente.');
+        return;
+      }
+
+      console.log('[RECORDER] Processed text received:', processResult.text);
       setFinalText(processResult.text);
 
-      // Try to paste automatically to where cursor is
-      try {
-        console.log('[RECORDER] Calling pasteToActiveWindow with:', processResult.text.substring(0, 50));
-        await window.electronAPI.pasteToActiveWindow(processResult.text);
-        toast.success('✓ Transcrição concluída e colada!');
-      } catch (error) {
-        // If paste fails, just copy to clipboard
-        console.warn('[RECORDER] Auto-paste failed, falling back to clipboard:', error);
-        await window.electronAPI.copyToClipboard(processResult.text);
-        toast.success('✓ Transcrição concluída e copiada!');
-      }
+      // Only copy to clipboard, do NOT auto-paste
+      // User can review the text and manually paste when ready
+      await window.electronAPI.copyToClipboard(processResult.text);
+      toast.success('✓ Transcrição concluída e copiada para a área de transferência!');
     } catch (error) {
       console.error('Error processing audio:', error);
       toast.error((error as Error).message || 'Erro ao processar áudio');
     } finally {
       setIsProcessing(false);
+      isProcessingRef.current = false; // Always reset processing flag
+      console.log('[RECORDER] Processing completed, flag reset');
     }
   };
 
@@ -165,10 +207,23 @@ export function Recorder({ mode, targetLanguage }: RecorderProps) {
       if (!result.success) {
         throw new Error(result.error);
       }
-      // Toast removed - already copied automatically after transcription
+      toast.success('✓ Texto copiado!');
     } catch (error) {
       console.error('Error copying to clipboard:', error);
       toast.error('Erro ao copiar texto');
+    }
+  };
+
+  const pasteText = async () => {
+    if (!finalText) return;
+
+    try {
+      console.log('[RECORDER] User requested paste, calling pasteToActiveWindow');
+      await window.electronAPI.pasteToActiveWindow(finalText);
+      toast.success('✓ Texto colado!');
+    } catch (error) {
+      console.error('Error pasting text:', error);
+      toast.error('Erro ao colar texto. Tente copiar e colar manualmente.');
     }
   };
 
@@ -229,9 +284,14 @@ export function Recorder({ mode, targetLanguage }: RecorderProps) {
               <Badge variant="default">
                 {mode === 'correct' ? 'Corrigido' : 'Traduzido'}
               </Badge>
-              <Button size="sm" onClick={copyToClipboard}>
-                Copiar
-              </Button>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={copyToClipboard}>
+                  Copiar
+                </Button>
+                <Button size="sm" onClick={pasteText}>
+                  Colar
+                </Button>
+              </div>
             </div>
             <div className="rounded-md border bg-muted p-3 text-sm font-medium">
               {finalText}

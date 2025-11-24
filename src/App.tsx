@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Toaster } from '@/components/ui/sonner'
+import { toast } from 'sonner'
 import { Recorder } from '@/components/Recorder'
 import { Settings } from '@/components/Settings'
 import { History } from '@/components/History'
@@ -8,6 +9,16 @@ import { History } from '@/components/History'
 function App() {
   const [mode, setMode] = useState<'correct' | 'translate'>('correct')
   const [targetLanguage, setTargetLanguage] = useState('en')
+
+  // Verificar se o electronAPI está disponível ao iniciar
+  useEffect(() => {
+    if (!window.electronAPI) {
+      console.error('CRÍTICO: window.electronAPI não está disponível - preload script falhou');
+      toast.error('Erro crítico: A aplicação não conseguiu inicializar corretamente. Por favor, reinicie a aplicação.');
+    } else {
+      console.log('✓ electronAPI carregado com sucesso');
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-background p-8">

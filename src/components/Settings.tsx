@@ -31,9 +31,13 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage }: S
 
   const loadSettings = async () => {
     try {
+      if (!window.electronAPI) {
+        throw new Error('electronAPI não está disponível - preload script falhou');
+      }
+
       const [apiKeyResult, hotkeyResult] = await Promise.all([
-        window.electronAPI?.getApiKey(),
-        window.electronAPI?.getHotkey(),
+        window.electronAPI.getApiKey(),
+        window.electronAPI.getHotkey(),
       ]);
 
       if (apiKeyResult?.success && apiKeyResult.apiKey) {
@@ -45,6 +49,7 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage }: S
       }
     } catch (error) {
       console.error('Error loading settings:', error);
+      toast.error('Erro ao carregar configurações');
     } finally {
       setIsLoading(false);
     }
@@ -52,29 +57,45 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage }: S
 
   const saveApiKey = async () => {
     try {
-      const result = await window.electronAPI?.saveApiKey(apiKey);
+      if (!window.electronAPI) {
+        throw new Error('electronAPI não está disponível');
+      }
+
+      // Validar formato da API key
+      if (!apiKey.startsWith('sk-')) {
+        toast.error('API Key inválida (deve começar com "sk-")');
+        return;
+      }
+
+      const result = await window.electronAPI.saveApiKey(apiKey);
       if (result?.success) {
         toast.success('API Key guardada com sucesso!');
       } else {
-        throw new Error(result?.error);
+        throw new Error(result?.error || 'Erro desconhecido');
       }
     } catch (error) {
       console.error('Error saving API key:', error);
-      toast.error('Erro ao guardar API Key');
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao guardar API Key';
+      toast.error(errorMessage);
     }
   };
 
   const saveHotkey = async () => {
     try {
-      const result = await window.electronAPI?.saveHotkey(hotkey);
+      if (!window.electronAPI) {
+        throw new Error('electronAPI não está disponível');
+      }
+
+      const result = await window.electronAPI.saveHotkey(hotkey);
       if (result?.success) {
         toast.success('Atalho guardado com sucesso!');
       } else {
-        throw new Error(result?.error);
+        throw new Error(result?.error || 'Erro desconhecido');
       }
     } catch (error) {
       console.error('Error saving hotkey:', error);
-      toast.error('Erro ao guardar atalho');
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao guardar atalho';
+      toast.error(errorMessage);
     }
   };
 

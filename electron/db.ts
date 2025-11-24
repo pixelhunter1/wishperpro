@@ -111,3 +111,31 @@ export const clearAllTranscriptions = (): void => {
   const stmt = db.prepare('DELETE FROM transcriptions');
   stmt.run();
 };
+
+export const saveGptModel = (model: string): void => {
+  const stmt = db.prepare(`
+    INSERT OR REPLACE INTO settings (key, value)
+    VALUES (?, ?)
+  `);
+  stmt.run('gpt_model', model);
+};
+
+export const getGptModel = (): string => {
+  const stmt = db.prepare('SELECT value FROM settings WHERE key = ?');
+  const row = stmt.get('gpt_model') as { value: string } | undefined;
+  return row?.value || 'gpt-4o'; // Default to gpt-4o
+};
+
+export const saveWhisperModel = (model: string): void => {
+  const stmt = db.prepare(`
+    INSERT OR REPLACE INTO settings (key, value)
+    VALUES (?, ?)
+  `);
+  stmt.run('whisper_model', model);
+};
+
+export const getWhisperModel = (): string => {
+  const stmt = db.prepare('SELECT value FROM settings WHERE key = ?');
+  const row = stmt.get('whisper_model') as { value: string } | undefined;
+  return row?.value || 'whisper-1'; // Default to whisper-1
+};

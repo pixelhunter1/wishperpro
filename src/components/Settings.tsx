@@ -22,6 +22,8 @@ interface SettingsProps {
 export function Settings({ mode, setMode, targetLanguage, setTargetLanguage }: SettingsProps) {
   const [apiKey, setApiKey] = useState('');
   const [hotkey, setHotkey] = useState('');
+  const [gptModel, setGptModel] = useState('gpt-4o');
+  const [whisperModel, setWhisperModel] = useState('whisper-1');
   const [isRecordingHotkey, setIsRecordingHotkey] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -35,9 +37,11 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage }: S
         throw new Error('electronAPI não está disponível - preload script falhou');
       }
 
-      const [apiKeyResult, hotkeyResult] = await Promise.all([
+      const [apiKeyResult, hotkeyResult, gptModelResult, whisperModelResult] = await Promise.all([
         window.electronAPI.getApiKey(),
         window.electronAPI.getHotkey(),
+        window.electronAPI.getGptModel(),
+        window.electronAPI.getWhisperModel(),
       ]);
 
       if (apiKeyResult?.success && apiKeyResult.apiKey) {
@@ -46,6 +50,14 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage }: S
 
       if (hotkeyResult?.success && hotkeyResult.hotkey) {
         setHotkey(hotkeyResult.hotkey);
+      }
+
+      if (gptModelResult?.success && gptModelResult.model) {
+        setGptModel(gptModelResult.model);
+      }
+
+      if (whisperModelResult?.success && whisperModelResult.model) {
+        setWhisperModel(whisperModelResult.model);
       }
     } catch (error) {
       console.error('Error loading settings:', error);
@@ -114,6 +126,36 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage }: S
       const hotkeyString = [...modifiers, key].join('+');
       setHotkey(hotkeyString);
       setIsRecordingHotkey(false);
+    }
+  };
+
+  const handleGptModelChange = async (model: string) => {
+    try {
+      setGptModel(model);
+      const result = await window.electronAPI.saveGptModel(model);
+      if (result?.success) {
+        toast.success('Modelo GPT guardado!');
+      } else {
+        throw new Error(result?.error || 'Erro desconhecido');
+      }
+    } catch (error) {
+      console.error('Error saving GPT model:', error);
+      toast.error('Erro ao guardar modelo GPT');
+    }
+  };
+
+  const handleWhisperModelChange = async (model: string) => {
+    try {
+      setWhisperModel(model);
+      const result = await window.electronAPI.saveWhisperModel(model);
+      if (result?.success) {
+        toast.success('Modelo Whisper guardado!');
+      } else {
+        throw new Error(result?.error || 'Erro desconhecido');
+      }
+    } catch (error) {
+      console.error('Error saving Whisper model:', error);
+      toast.error('Erro ao guardar modelo Whisper');
     }
   };
 
@@ -210,6 +252,41 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage }: S
             {isRecordingHotkey
               ? 'Pressione a combinação de teclas desejada...'
               : 'Clique no campo e pressione a combinação (ex: Ctrl+Shift+R)'}
+          </p>
+        </div>
+
+        {/* GPT Model Selection */}
+        <div className="space-y-2">
+          <Label>Modelo GPT (Correção/Tradução)</Label>
+          <Select value={gptModel} onValueChange={handleGptModelChange} disabled={isLoading}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="gpt-4o">GPT-4o (Recomendado - Melhor qualidade)</SelectItem>
+              <SelectItem value="gpt-4o-mini">GPT-4o Mini (Mais rápido e económico)</SelectItem>
+              <SelectItem value="gpt-4-turbo">GPT-4 Turbo</SelectItem>
+              <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo (Mais barato)</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Modelo usado para corrigir e traduzir o texto transcrito
+          </p>
+        </div>
+
+        {/* Whisper Model Selection */}
+        <div className="space-y-2">
+          <Label>Modelo Whisper (Transcrição)</Label>
+          <Select value={whisperModel} onValueChange={handleWhisperModelChange} disabled={isLoading}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="whisper-1">Whisper-1 (Padrão)</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Modelo usado para transcrever áudio para texto (atualmente apenas whisper-1 disponível)
           </p>
         </div>
       </CardContent>

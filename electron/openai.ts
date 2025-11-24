@@ -4,6 +4,7 @@ import { Readable } from 'stream';
 export const transcribeAudio = async (
   audioBuffer: ArrayBuffer,
   apiKey: string,
+  whisperModel: string,
   mimeType?: string
 ): Promise<string> => {
   const openai = new OpenAI({ apiKey });
@@ -39,23 +40,34 @@ export const transcribeAudio = async (
     type: audioType,
   });
 
+  // Using prompt engineering to reduce hallucinations
+  // Based on OpenAI docs: https://platform.openai.com/docs/guides/speech-to-text/prompting
+  const promptText = 'Olá, como está? Está tudo bem. Obrigado, até logo.';
+
   const transcription = await openai.audio.transcriptions.create({
     file: file as any,
-    model: 'whisper-1',
+    model: whisperModel, // Use selected model
     language: 'pt', // Portuguese as default
+    prompt: promptText, // Guide Whisper with Portuguese examples
     response_format: 'verbose_json', // Get more detailed response
-    temperature: 0.0, // More deterministic
+    temperature: 0.0, // More deterministic - reduces hallucinations
   });
 
-  // Clean up the transcription text by removing any non-speech annotations
-  // Whisper sometimes adds descriptions in brackets like [música], [ruído], etc.
+  // Clean up the transcription text by removing any non-speech annotations and hallucinations
   let cleanText = transcription.text
-    .replace(/\[.*?\]/g, '') // Remove anything in square brackets
-    .replace(/\(.*?\)/g, '') // Remove anything in parentheses if it's a description
+    .replace(/\[.*?\]/g, '') // Remove anything in square brackets [música], [ruído]
+    .replace(/\(.*?\)/g, '') // Remove anything in parentheses
     .replace(/\.{2,}/g, '.') // Replace multiple dots with single dot
     .replace(/\s{2,}/g, ' ') // Replace multiple spaces with single space
     .replace(/\\+/g, '') // Remove backslashes
+    // Remove common Whisper hallucinations at the end
+    .replace(/(\s+(e\s+ai|ai|eh|hm|mm|uh|ah|oh)\s*[,.]?\s*)+$/gi, '') // Remove hesitation sounds at end
+    .replace(/\s+legendas\s+.*$/gi, '') // Remove "legendas" artifacts
+    .replace(/\s+(obrigad[oa]|obrigado por assistir|inscreva-se).*$/gi, '') // Remove common video outros
     .trim();
+
+  // Remove trailing punctuation duplicates
+  cleanText = cleanText.replace(/([,.!?])\1+/g, '$1');
 
   return cleanText;
 };
@@ -64,7 +76,8 @@ export const processText = async (
   text: string,
   mode: 'correct' | 'translate',
   targetLanguage: string,
-  apiKey: string
+  apiKey: string,
+  gptModel: string
 ): Promise<string> => {
   const openai = new OpenAI({ apiKey });
 
@@ -101,7 +114,7 @@ Retorna APENAS a tradução, sem explicações ou comentários adicionais.`;
   }
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4o', // Modelo mais recente e melhor
+    model: gptModel, // Use selected model
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },

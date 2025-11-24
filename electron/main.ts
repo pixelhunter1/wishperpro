@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain, clipboard, globalShortcut } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { initDatabase, saveTranscription, getTranscriptions, saveApiKey, getApiKey, saveHotkey, getHotkey, deleteTranscription, clearAllTranscriptions } from './db';
+import { initDatabase, saveTranscription, getTranscriptions, saveApiKey, getApiKey, saveHotkey, getHotkey, deleteTranscription, clearAllTranscriptions, saveGptModel, getGptModel, saveWhisperModel, getWhisperModel } from './db';
 import { transcribeAudio, processText } from './openai';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -95,7 +95,8 @@ ipcMain.handle('transcribe-audio', async (_event, data: { audioBlob: ArrayBuffer
       throw new Error('API Key not configured');
     }
 
-    const transcription = await transcribeAudio(data.audioBlob, apiKey, data.mimeType);
+    const whisperModel = getWhisperModel();
+    const transcription = await transcribeAudio(data.audioBlob, apiKey, whisperModel, data.mimeType);
     return { success: true, text: transcription };
   } catch (error) {
     return { success: false, error: (error as Error).message };
@@ -113,11 +114,13 @@ ipcMain.handle('process-text', async (_event, data: {
       throw new Error('API Key not configured');
     }
 
+    const gptModel = getGptModel();
     const processedText = await processText(
       data.text,
       data.mode,
       data.targetLanguage,
-      apiKey
+      apiKey,
+      gptModel
     );
 
     // Save to database
@@ -145,20 +148,24 @@ ipcMain.handle('copy-to-clipboard', async (_event, text: string) => {
 
 ipcMain.handle('paste-to-active-window', async (_event, text: string) => {
   try {
+    console.log('Starting auto-paste...', text.substring(0, 50));
+
     // Copy text to clipboard first
     clipboard.writeText(text);
+    console.log('Text copied to clipboard');
 
-    // Small delay to ensure clipboard is ready
-    await new Promise(resolve => setTimeout(resolve, 50));
+    // Longer delay to ensure clipboard is ready
+    await new Promise(resolve => setTimeout(resolve, 200));
 
     if (process.platform === 'darwin') {
-      // macOS: Use AppleScript to paste without minimizing window
+      // macOS: Use AppleScript to paste
       const { exec } = await import('child_process');
       const { promisify } = await import('util');
       const execAsync = promisify(exec);
 
-      // This approach doesn't require hiding the window
-      await execAsync(`osascript -e 'tell application "System Events" to keystroke "v" using command down'`);
+      console.log('Executing paste command...');
+      const result = await execAsync(`osascript -e 'tell application "System Events" to keystroke "v" using command down'`);
+      console.log('Paste command executed:', result);
     } else if (process.platform === 'linux') {
       // Linux: Use xdotool
       const { exec } = await import('child_process');
@@ -175,8 +182,13 @@ ipcMain.handle('paste-to-active-window', async (_event, text: string) => {
       await execAsync('powershell -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait(\'^v\')"');
     }
 
+    // Extra delay after paste
+    await new Promise(resolve => setTimeout(resolve, 100));
+    console.log('Auto-paste completed');
+
     return { success: true };
   } catch (error) {
+    console.error('Auto-paste error:', error);
     return { success: false, error: (error as Error).message };
   }
 });
@@ -222,6 +234,42 @@ ipcMain.handle('get-hotkey', async () => {
   try {
     const hotkey = getHotkey();
     return { success: true, hotkey };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+ipcMain.handle('save-gpt-model', async (_event, model: string) => {
+  try {
+    saveGptModel(model);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+ipcMain.handle('get-gpt-model', async () => {
+  try {
+    const model = getGptModel();
+    return { success: true, model };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+ipcMain.handle('save-whisper-model', async (_event, model: string) => {
+  try {
+    saveWhisperModel(model);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+ipcMain.handle('get-whisper-model', async () => {
+  try {
+    const model = getWhisperModel();
+    return { success: true, model };
   } catch (error) {
     return { success: false, error: (error as Error).message };
   }

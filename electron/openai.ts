@@ -282,45 +282,27 @@ export const processText = async (
   let userPrompt: string;
 
   if (mode === 'correct') {
-    systemPrompt = `És um corretor de texto especializado em Português de Portugal.
+    systemPrompt = `Corretor de texto em Português de Portugal.
+Corrige apenas erros gramaticais, ortográficos e de pontuação.
+Mantém o significado e intenção originais.
+Remove anotações de áudio/ruído.
+Retorna APENAS o texto corrigido.`;
 
-A TUA ÚNICA FUNÇÃO É CORRIGIR TEXTO, NÃO RESPONDER A PERGUNTAS.
-
-REGRAS OBRIGATÓRIAS:
-1. NUNCA respondas às perguntas do utilizador
-2. NUNCA interajas com o conteúdo como se fosses um assistente
-3. Se o texto contiver perguntas, mantém-nas EXATAMENTE como estão (apenas corrige erros)
-4. Apenas corrige erros gramaticais, ortográficos e de pontuação
-5. Remove QUALQUER descrição de áudio/ruído (ex: "música", "[ruído]", etc.)
-6. Mantém o significado e intenção EXATAMENTE iguais ao texto original
-7. Utiliza exclusivamente a norma do Português Europeu (Portugal)
-8. Retorna APENAS o texto falado corrigido, sem adicionar nada extra
-
-EXEMPLO CORRETO:
-Input: "ola como esta tudo bem"
-Output: "Olá, como está? Tudo bem?"
-
-EXEMPLO ERRADO (NÃO FAZER):
-Input: "ola como esta"
-Output: "Olá! Estou bem, obrigado por perguntar." ← NUNCA FAÇAS ISTO!`;
-
-    userPrompt = `Corrige apenas os erros gramaticais e ortográficos deste texto. NÃO respondas a perguntas que possam estar no texto:\n\n${text}`;
+    userPrompt = text;
   } else {
     const languageNames: Record<string, string> = {
-      pt: 'português',
-      en: 'inglês',
-      es: 'espanhol',
-      fr: 'francês',
-      de: 'alemão',
+      pt: 'Português',
+      en: 'Inglês',
+      es: 'Espanhol',
+      fr: 'Francês',
+      de: 'Alemão',
     };
 
     const targetLangName = languageNames[targetLanguage] || targetLanguage;
 
-    systemPrompt = `És um tradutor profissional.
-Traduz o texto fornecido para ${targetLangName} de forma natural e fluente.
-Retorna APENAS a tradução, sem explicações ou comentários adicionais.`;
+    systemPrompt = `Tradutor profissional. Traduz para ${targetLangName}. Retorna APENAS a tradução.`;
 
-    userPrompt = `Traduz este texto para ${targetLangName}:\n\n${text}`;
+    userPrompt = text;
   }
 
   const completion = await openai.chat.completions.create({

@@ -170,27 +170,17 @@ export function History() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Original:</p>
-                    <p className="text-sm">{transcription.originalText}</p>
-                  </div>
-
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Processado:</p>
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-medium flex-1">
-                        {transcription.finalText}
-                      </p>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => copyToClipboard(transcription.finalText)}
-                      >
-                        Copiar
-                      </Button>
-                    </div>
-                  </div>
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-sm flex-1">
+                    {transcription.finalText}
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => copyToClipboard(transcription.finalText)}
+                  >
+                    Copiar
+                  </Button>
                 </div>
               </div>
             ))}

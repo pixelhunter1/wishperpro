@@ -36,6 +36,11 @@ export function Recorder({ mode, targetLanguage }: RecorderProps) {
 
   const startRecording = async () => {
     try {
+      console.log('[RECORDER] startRecording called');
+      // Clear previous transcription texts before starting new recording
+      setTranscribedText('');
+      setFinalText('');
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
       // Try to find the best supported audio format
@@ -75,8 +80,6 @@ export function Recorder({ mode, targetLanguage }: RecorderProps) {
 
       mediaRecorder.start();
       setIsRecording(true);
-      setTranscribedText('');
-      setFinalText('');
     } catch (error) {
       console.error('Error starting recording:', error);
       toast.error('Erro ao aceder ao microfone');
@@ -84,6 +87,7 @@ export function Recorder({ mode, targetLanguage }: RecorderProps) {
   };
 
   const stopRecording = () => {
+    console.log('[RECORDER] stopRecording called, isRecording:', isRecording);
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
@@ -135,11 +139,12 @@ export function Recorder({ mode, targetLanguage }: RecorderProps) {
 
       // Try to paste automatically to where cursor is
       try {
+        console.log('[RECORDER] Calling pasteToActiveWindow with:', processResult.text.substring(0, 50));
         await window.electronAPI.pasteToActiveWindow(processResult.text);
         toast.success('✓ Transcrição concluída e colada!');
       } catch (error) {
         // If paste fails, just copy to clipboard
-        console.warn('Auto-paste failed, falling back to clipboard:', error);
+        console.warn('[RECORDER] Auto-paste failed, falling back to clipboard:', error);
         await window.electronAPI.copyToClipboard(processResult.text);
         toast.success('✓ Transcrição concluída e copiada!');
       }

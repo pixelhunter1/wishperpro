@@ -263,14 +263,14 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage }: S
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="gpt-4o">GPT-4o (Recomendado - Melhor qualidade)</SelectItem>
+              <SelectItem value="gpt-4o">GPT-4o (Recomendado - Melhor relação qualidade/preço)</SelectItem>
               <SelectItem value="gpt-4o-mini">GPT-4o Mini (Mais rápido e económico)</SelectItem>
-              <SelectItem value="gpt-4-turbo">GPT-4 Turbo</SelectItem>
-              <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo (Mais barato)</SelectItem>
+              <SelectItem value="gpt-4-turbo">GPT-4 Turbo (Modelo legado)</SelectItem>
+              <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo (Mais barato, menor qualidade)</SelectItem>
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">
-            Modelo usado para corrigir e traduzir o texto transcrito
+            Modelo usado para corrigir e traduzir o texto transcrito. GPT-4o oferece o melhor equilíbrio.
           </p>
         </div>
 
@@ -282,11 +282,13 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage }: S
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="whisper-1">Whisper-1 (Padrão)</SelectItem>
+              <SelectItem value="gpt-4o-mini-transcribe">GPT-4o Mini Transcribe (Recomendado - Mais rápido e económico)</SelectItem>
+              <SelectItem value="gpt-4o-transcribe">GPT-4o Transcribe (Maior qualidade)</SelectItem>
+              <SelectItem value="whisper-1">Whisper-1 (Modelo legado)</SelectItem>
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">
-            Modelo usado para transcrever áudio para texto (atualmente apenas whisper-1 disponível)
+            Novos modelos GPT-4o suportam streaming em tempo real e melhor precisão
           </p>
         </div>
       </CardContent>

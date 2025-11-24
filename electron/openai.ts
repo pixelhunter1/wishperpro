@@ -44,12 +44,15 @@ export const transcribeAudio = async (
   // Based on OpenAI docs: https://platform.openai.com/docs/guides/speech-to-text/prompting
   const promptText = 'Olá, como está? Está tudo bem. Obrigado, até logo.';
 
+  // Check if using new GPT-4o models that support different parameters
+  const isNewModel = whisperModel.includes('gpt-4o');
+
   const transcription = await openai.audio.transcriptions.create({
     file: file as any,
     model: whisperModel, // Use selected model
-    language: 'pt', // Portuguese as default
-    prompt: promptText, // Guide Whisper with Portuguese examples
-    response_format: 'verbose_json', // Get more detailed response
+    language: isNewModel ? undefined : 'pt', // New models handle language automatically
+    prompt: isNewModel ? promptText : promptText, // Both support prompting
+    response_format: isNewModel ? 'json' : 'verbose_json', // New models support json or text
     temperature: 0.0, // More deterministic - reduces hallucinations
   });
 
@@ -67,6 +70,91 @@ export const transcribeAudio = async (
     .trim();
 
   // Remove trailing punctuation duplicates
+  cleanText = cleanText.replace(/([,.!?])\1+/g, '$1');
+
+  return cleanText;
+};
+
+export const transcribeAudioStream = async (
+  audioBuffer: ArrayBuffer,
+  apiKey: string,
+  whisperModel: string,
+  mimeType?: string,
+  onProgress?: (text: string) => void
+): Promise<string> => {
+  const openai = new OpenAI({ apiKey });
+
+  // Convert ArrayBuffer to Buffer
+  const buffer = Buffer.from(audioBuffer);
+
+  // Detect file extension from mime type
+  let extension = 'webm';
+  let audioType = 'audio/webm';
+
+  if (mimeType) {
+    audioType = mimeType.split(';')[0]; // Remove codec info
+    if (audioType.includes('webm')) {
+      extension = 'webm';
+    } else if (audioType.includes('mp4') || audioType.includes('m4a')) {
+      extension = 'm4a';
+    } else if (audioType.includes('ogg')) {
+      extension = 'ogg';
+    } else if (audioType.includes('wav')) {
+      extension = 'wav';
+    }
+  }
+
+  console.log(`Streaming transcription: ${buffer.length} bytes, type: ${audioType}`);
+
+  // Create a readable stream from the buffer
+  const stream = Readable.from(buffer);
+
+  // Add required properties for file upload
+  const file = Object.assign(stream, {
+    name: `audio.${extension}`,
+    type: audioType,
+  });
+
+  const promptText = 'Olá, como está? Está tudo bem. Obrigado, até logo.';
+  const isNewModel = whisperModel.includes('gpt-4o');
+
+  // Only new models support streaming
+  if (!isNewModel) {
+    // Fall back to non-streaming for whisper-1
+    return transcribeAudio(audioBuffer, apiKey, whisperModel, mimeType);
+  }
+
+  const streamResponse = await openai.audio.transcriptions.create({
+    file: file as any,
+    model: whisperModel,
+    prompt: promptText,
+    response_format: 'text',
+    stream: true, // Enable streaming
+  });
+
+  let fullText = '';
+
+  for await (const event of streamResponse) {
+    if (event && typeof event === 'string') {
+      fullText += event;
+      if (onProgress) {
+        onProgress(fullText);
+      }
+    }
+  }
+
+  // Apply same cleanup as non-streaming version
+  let cleanText = fullText
+    .replace(/\[.*?\]/g, '')
+    .replace(/\(.*?\)/g, '')
+    .replace(/\.{2,}/g, '.')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\\+/g, '')
+    .replace(/(\s+(e\s+ai|ai|eh|hm|mm|uh|ah|oh)\s*[,.]?\s*)+$/gi, '')
+    .replace(/\s+legendas\s+.*$/gi, '')
+    .replace(/\s+(obrigad[oa]|obrigado por assistir|inscreva-se).*$/gi, '')
+    .trim();
+
   cleanText = cleanText.replace(/([,.!?])\1+/g, '$1');
 
   return cleanText;
@@ -114,12 +202,13 @@ Retorna APENAS a tradução, sem explicações ou comentários adicionais.`;
   }
 
   const completion = await openai.chat.completions.create({
-    model: gptModel, // Use selected model
+    model: gptModel, // Use selected model (gpt-4o recommended)
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },
     ],
-    temperature: 0.1, // Mais determinístico
+    temperature: 0.1, // More deterministic
+    store: true, // Enable storage for OpenAI improvements
   });
 
   return completion.choices[0]?.message?.content || text;

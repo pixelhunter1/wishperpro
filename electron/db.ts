@@ -137,5 +137,5 @@ export const saveWhisperModel = (model: string): void => {
 export const getWhisperModel = (): string => {
   const stmt = db.prepare('SELECT value FROM settings WHERE key = ?');
   const row = stmt.get('whisper_model') as { value: string } | undefined;
-  return row?.value || 'whisper-1'; // Default to whisper-1
+  return row?.value || 'gpt-4o-mini-transcribe'; // Default to new faster model
 };

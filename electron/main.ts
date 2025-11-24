@@ -139,6 +139,7 @@ ipcMain.handle('process-text', async (_event, data: {
 
 ipcMain.handle('copy-to-clipboard', async (_event, text: string) => {
   try {
+    console.log('[CLIPBOARD] Copying text to clipboard:', text.substring(0, 50));
     clipboard.writeText(text);
     return { success: true };
   } catch (error) {
@@ -148,11 +149,15 @@ ipcMain.handle('copy-to-clipboard', async (_event, text: string) => {
 
 ipcMain.handle('paste-to-active-window', async (_event, text: string) => {
   try {
-    console.log('Starting auto-paste...', text.substring(0, 50));
+    console.log('[PASTE] Starting auto-paste...', text.substring(0, 50));
 
-    // Copy text to clipboard first
+    // Clear clipboard first to prevent old text from being pasted
+    clipboard.clear();
+    console.log('[PASTE] Clipboard cleared');
+
+    // Copy text to clipboard
     clipboard.writeText(text);
-    console.log('Text copied to clipboard');
+    console.log('[PASTE] Text copied to clipboard');
 
     // Longer delay to ensure clipboard is ready
     await new Promise(resolve => setTimeout(resolve, 200));

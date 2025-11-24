@@ -7,6 +7,7 @@
     "name": "WishperPro",
     "email": "support@wishperpro.app"
   },
+  "license": "MIT",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {

@@ -4,7 +4,7 @@
 
 **AI-Powered Voice Transcription with Smart Auto-Paste**
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Electron](https://img.shields.io/badge/Electron-39-47848F?logo=electron)](https://www.electronjs.org/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://reactjs.org/)
 [![OpenAI](https://img.shields.io/badge/OpenAI-Whisper%20%2B%20GPT--4-412991?logo=openai)](https://openai.com/)
@@ -413,7 +413,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📧 Support
 
-Having issues? Open an issue on [GitHub Issues](https://github.com/yourusername/wishperpro/issues)
+Having issues? Open an issue on [GitHub Issues](https://github.com/pixelhunter1/wishperpro/issues)
 
 ---
 

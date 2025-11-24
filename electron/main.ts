@@ -303,22 +303,19 @@ ipcMain.handle('paste-to-active-window', async (_event, text: string) => {
     // Execute paste command based on platform
     const pasteStartTime = Date.now();
     if (process.platform === 'darwin') {
-      // macOS: Use AppleScript to type text directly instead of Cmd+V
-      // This avoids clipboard race conditions completely
+      // macOS: Use Cmd+V to paste from clipboard
+      // This preserves all text encoding and special characters
       const { exec } = await import('child_process');
       const { promisify } = await import('util');
       const execAsync = promisify(exec);
 
-      // Escape text for AppleScript (escape backslashes and quotes)
-      const escapedText = text
-        .replace(/\\/g, '\\\\')
-        .replace(/"/g, '\\"')
-        .replace(/\n/g, '\\n')
-        .replace(/\r/g, '\\r');
+      console.log('[PASTE] Pasting via Cmd+V with AppleScript...');
+      // Use keystroke with "v" and command down modifier
+      await execAsync(`osascript -e 'tell application "System Events" to keystroke "v" using command down'`);
+      console.log('[PASTE] Paste command sent successfully');
 
-      console.log('[PASTE] Typing text directly via AppleScript...');
-      const result = await execAsync(`osascript -e 'tell application "System Events" to keystroke "${escapedText}"'`);
-      console.log('[PASTE] Text typed successfully:', result);
+      // Wait a bit to ensure paste completes
+      await new Promise(resolve => setTimeout(resolve, 100));
     } else if (process.platform === 'linux') {
       // Linux: Use xdotool
       const { exec } = await import('child_process');

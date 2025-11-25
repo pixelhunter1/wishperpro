@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,13 +14,13 @@ interface TranscriptionRecord {
   mode: string;
 }
 
-export function History() {
+export interface HistoryHandle {
+  refresh: () => void;
+}
+
+export const History = forwardRef<HistoryHandle>(function History(_props, ref) {
   const [transcriptions, setTranscriptions] = useState<TranscriptionRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    loadTranscriptions();
-  }, []);
 
   const loadTranscriptions = async () => {
     try {
@@ -35,6 +35,15 @@ export function History() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadTranscriptions();
+  }, []);
+
+  // Expose refresh method to parent component
+  useImperativeHandle(ref, () => ({
+    refresh: loadTranscriptions,
+  }));
 
   const copyToClipboard = async (text: string) => {
     try {
@@ -204,4 +213,4 @@ export function History() {
       </CardContent>
     </Card>
   );
-}
+});

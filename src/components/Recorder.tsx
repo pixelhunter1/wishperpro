@@ -9,6 +9,7 @@ interface RecorderProps {
   targetLanguage: string;
   sourceLanguage: string;
   hotkey: string;
+  onTranscriptionComplete?: () => void;
 }
 
 export interface RecorderHandle {
@@ -27,7 +28,7 @@ const formatHotkey = (hotkey: string): string => {
     .replace('+', '+');
 };
 
-export const Recorder = forwardRef<RecorderHandle, RecorderProps>(({ mode, targetLanguage, sourceLanguage, hotkey }, ref) => {
+export const Recorder = forwardRef<RecorderHandle, RecorderProps>(({ mode, targetLanguage, sourceLanguage, hotkey, onTranscriptionComplete }, ref) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [transcribedText, setTranscribedText] = useState('');
@@ -295,6 +296,11 @@ export const Recorder = forwardRef<RecorderHandle, RecorderProps>(({ mode, targe
         console.warn('[RECORDER] Auto-paste failed, falling back to clipboard:', pasteResult.error);
         await window.electronAPI.copyToClipboard(processResult.text);
         toast.success('✓ Transcription completed and copied to clipboard!');
+      }
+
+      // Notify parent that transcription is complete (to refresh history)
+      if (onTranscriptionComplete) {
+        onTranscriptionComplete();
       }
     } catch (error) {
       console.error('Error processing audio:', error);

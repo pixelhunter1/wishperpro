@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { Recorder } from '@/components/Recorder'
 import { Settings } from '@/components/Settings'
 import { History } from '@/components/History'
+import type { HistoryHandle } from '@/components/History'
 import {
   Dialog,
   DialogContent,
@@ -26,6 +27,15 @@ function App() {
     stopRecording: () => void;
     isRecording: () => boolean;
   } | null>(null)
+
+  // Ref to refresh history after transcription
+  const historyRef = useRef<HistoryHandle | null>(null)
+
+  const handleTranscriptionComplete = () => {
+    if (historyRef.current) {
+      historyRef.current.refresh();
+    }
+  }
 
   // Verificar se o electronAPI está disponível ao iniciar
   useEffect(() => {
@@ -141,12 +151,13 @@ function App() {
           sourceLanguage={sourceLanguage}
           hotkey={hotkey}
           ref={recorderRef}
+          onTranscriptionComplete={handleTranscriptionComplete}
         />
       </div>
 
       {/* Main Content - History */}
       <main className="mx-auto max-w-3xl px-6 py-5">
-        <History />
+        <History ref={historyRef} />
       </main>
 
       <Toaster />

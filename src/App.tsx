@@ -5,6 +5,7 @@ import { Recorder } from '@/components/Recorder'
 import { Settings } from '@/components/Settings'
 import { History } from '@/components/History'
 import type { HistoryHandle } from '@/components/History'
+import { ThemeToggle } from '@/components/ThemeToggle'
 import {
   Dialog,
   DialogContent,
@@ -109,9 +110,8 @@ function App() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md font-mono">
-                {hotkey.replace('CommandOrControl', 'Cmd').replace('+', ' + ')}
-              </span>
+              {/* Theme Toggle */}
+              <ThemeToggle />
 
               {/* Settings Button */}
               <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>

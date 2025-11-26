@@ -28,6 +28,29 @@ const formatHotkey = (hotkey: string): string => {
     .replace('+', '+');
 };
 
+// Play a success beep sound using Web Audio API
+const playSuccessBeep = () => {
+  try {
+    const audioContext = new AudioContext();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    oscillator.frequency.value = 800; // Hz
+    oscillator.type = 'sine';
+
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.2);
+  } catch (error) {
+    console.warn('[RECORDER] Could not play beep:', error);
+  }
+};
+
 export const Recorder = forwardRef<RecorderHandle, RecorderProps>(({ mode, targetLanguage, sourceLanguage, hotkey, onTranscriptionComplete }, ref) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -289,23 +312,16 @@ export const Recorder = forwardRef<RecorderHandle, RecorderProps>(({ mode, targe
       console.log('[RECORDER] Auto-pasting text to active window');
       const pasteResult = await window.electronAPI.pasteToActiveWindow(processResult.text);
 
+      // Play success sound
+      playSuccessBeep();
+
       if (pasteResult.success) {
         toast.success('✓ Transcription completed and pasted automatically!');
-        // Show native notification
-        window.electronAPI.showNotification({
-          title: 'WishperPro',
-          body: 'Transcription completed and pasted!'
-        });
       } else {
         // Fallback to clipboard if auto-paste fails
         console.warn('[RECORDER] Auto-paste failed, falling back to clipboard:', pasteResult.error);
         await window.electronAPI.copyToClipboard(processResult.text);
         toast.success('✓ Transcription completed and copied to clipboard!');
-        // Show native notification
-        window.electronAPI.showNotification({
-          title: 'WishperPro',
-          body: 'Transcription completed and copied to clipboard!'
-        });
       }
 
       // Notify parent that transcription is complete (to refresh history)

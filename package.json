@@ -8,6 +8,7 @@
     "email": "support@wishperpro.app"
   },
   "license": "MIT",
+  "homepage": "https://github.com/pixelhunter1/wishperpro",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {

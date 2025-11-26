@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain, clipboard, globalShortcut, Menu, screen } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { initDatabase, saveTranscription, getTranscriptions, saveApiKey, getApiKey, saveHotkey, getHotkey, deleteTranscription, clearAllTranscriptions, saveGptModel, getGptModel, saveWhisperModel, getWhisperModel, saveOverlayPosition, getOverlayPosition, saveSourceLanguage, getSourceLanguage, toggleFavorite, updateTranscription } from './db';
+import { initDatabase, saveTranscription, getTranscriptions, saveApiKey, getApiKey, saveHotkey, getHotkey, deleteTranscription, clearAllTranscriptions, saveGptModel, getGptModel, saveWhisperModel, getWhisperModel, saveOverlayPosition, getOverlayPosition, saveSourceLanguage, getSourceLanguage, toggleFavorite, updateTranscription, saveSoundEnabled, getSoundEnabled } from './db';
 import { transcribeAudio, processText } from './openai';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -678,6 +678,24 @@ ipcMain.handle('get-source-language', async () => {
   try {
     const language = getSourceLanguage();
     return { success: true, language };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+ipcMain.handle('save-sound-enabled', async (_event, enabled: boolean) => {
+  try {
+    saveSoundEnabled(enabled);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+ipcMain.handle('get-sound-enabled', async () => {
+  try {
+    const enabled = getSoundEnabled();
+    return { success: true, enabled };
   } catch (error) {
     return { success: false, error: (error as Error).message };
   }

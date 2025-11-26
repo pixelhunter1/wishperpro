@@ -9,6 +9,7 @@ interface RecorderProps {
   targetLanguage: string;
   sourceLanguage: string;
   hotkey: string;
+  soundEnabled: boolean;
   onTranscriptionComplete?: () => void;
 }
 
@@ -51,7 +52,7 @@ const playSuccessBeep = () => {
   }
 };
 
-export const Recorder = forwardRef<RecorderHandle, RecorderProps>(({ mode, targetLanguage, sourceLanguage, hotkey, onTranscriptionComplete }, ref) => {
+export const Recorder = forwardRef<RecorderHandle, RecorderProps>(({ mode, targetLanguage, sourceLanguage, hotkey, soundEnabled, onTranscriptionComplete }, ref) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [transcribedText, setTranscribedText] = useState('');
@@ -312,8 +313,10 @@ export const Recorder = forwardRef<RecorderHandle, RecorderProps>(({ mode, targe
       console.log('[RECORDER] Auto-pasting text to active window');
       const pasteResult = await window.electronAPI.pasteToActiveWindow(processResult.text);
 
-      // Play success sound
-      playSuccessBeep();
+      // Play success sound if enabled
+      if (soundEnabled) {
+        playSuccessBeep();
+      }
 
       if (pasteResult.success) {
         toast.success('✓ Transcription completed and pasted automatically!');

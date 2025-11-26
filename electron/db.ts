@@ -202,3 +202,17 @@ export const getSourceLanguage = (): string => {
   const row = stmt.get('source_language') as { value: string } | undefined;
   return row?.value || 'pt'; // Default to Portuguese for backward compatibility
 };
+
+export const saveSoundEnabled = (enabled: boolean): void => {
+  const stmt = db.prepare(`
+    INSERT OR REPLACE INTO settings (key, value)
+    VALUES (?, ?)
+  `);
+  stmt.run('sound_enabled', enabled ? '1' : '0');
+};
+
+export const getSoundEnabled = (): boolean => {
+  const stmt = db.prepare('SELECT value FROM settings WHERE key = ?');
+  const row = stmt.get('sound_enabled') as { value: string } | undefined;
+  return row?.value !== '0'; // Default to true (enabled)
+};

@@ -18,10 +18,12 @@ interface SettingsProps {
   setTargetLanguage: (lang: string) => void;
   sourceLanguage: string;
   setSourceLanguage: (lang: string) => void;
+  soundEnabled: boolean;
+  setSoundEnabled: (enabled: boolean) => void;
   onHotkeyChange?: (hotkey: string) => void;
 }
 
-export function Settings({ mode, setMode, targetLanguage, setTargetLanguage, sourceLanguage, setSourceLanguage, onHotkeyChange }: SettingsProps) {
+export function Settings({ mode, setMode, targetLanguage, setTargetLanguage, sourceLanguage, setSourceLanguage, soundEnabled, setSoundEnabled, onHotkeyChange }: SettingsProps) {
   const [apiKey, setApiKey] = useState('');
   const [hotkey, setHotkey] = useState('');
   const [gptModel, setGptModel] = useState('gpt-4o');
@@ -199,6 +201,22 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage, sou
     }
   };
 
+  const handleSoundToggle = async () => {
+    try {
+      const newValue = !soundEnabled;
+      setSoundEnabled(newValue);
+      const result = await window.electronAPI.saveSoundEnabled(newValue);
+      if (result?.success) {
+        toast.success(newValue ? 'Sound enabled' : 'Sound disabled');
+      } else {
+        throw new Error(result?.error || 'Unknown error');
+      }
+    } catch (error) {
+      console.error('Error saving sound setting:', error);
+      toast.error('Error saving sound setting');
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* API Key */}
@@ -346,6 +364,24 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage, sou
             </SelectContent>
           </Select>
         </div>
+      </div>
+
+      <div className="h-px bg-border" />
+
+      {/* Sound Settings */}
+      <div className="flex items-center justify-between">
+        <div className="space-y-0.5">
+          <Label className="text-sm font-medium">Sound Notification</Label>
+          <p className="text-xs text-muted-foreground">Play a beep when transcription completes</p>
+        </div>
+        <Button
+          variant={soundEnabled ? "default" : "outline"}
+          size="sm"
+          onClick={handleSoundToggle}
+          className="h-8 px-3 text-xs"
+        >
+          {soundEnabled ? 'On' : 'Off'}
+        </Button>
       </div>
     </div>
   );

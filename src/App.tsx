@@ -5,6 +5,7 @@ import { Recorder } from '@/components/Recorder'
 import { Settings } from '@/components/Settings'
 import { History } from '@/components/History'
 import type { HistoryHandle } from '@/components/History'
+import { ThemeToggle } from '@/components/ThemeToggle'
 import {
   Dialog,
   DialogContent,
@@ -19,6 +20,7 @@ function App() {
   const [targetLanguage, setTargetLanguage] = useState('en')
   const [sourceLanguage, setSourceLanguage] = useState('pt')
   const [hotkey, setHotkey] = useState('CommandOrControl+Shift+R')
+  const [soundEnabled, setSoundEnabled] = useState(true)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
   // Refs to control recording from global hotkey
@@ -58,6 +60,11 @@ function App() {
       const sourceLanguageResult = await window.electronAPI.getSourceLanguage();
       if (sourceLanguageResult.success && sourceLanguageResult.language) {
         setSourceLanguage(sourceLanguageResult.language);
+      }
+
+      const soundResult = await window.electronAPI.getSoundEnabled();
+      if (soundResult.success) {
+        setSoundEnabled(soundResult.enabled);
       }
     };
     loadSettings();
@@ -109,9 +116,8 @@ function App() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md font-mono">
-                {hotkey.replace('CommandOrControl', 'Cmd').replace('+', ' + ')}
-              </span>
+              {/* Theme Toggle */}
+              <ThemeToggle />
 
               {/* Settings Button */}
               <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
@@ -134,6 +140,8 @@ function App() {
                     setTargetLanguage={setTargetLanguage}
                     sourceLanguage={sourceLanguage}
                     setSourceLanguage={setSourceLanguage}
+                    soundEnabled={soundEnabled}
+                    setSoundEnabled={setSoundEnabled}
                     onHotkeyChange={setHotkey}
                   />
                 </DialogContent>
@@ -150,6 +158,7 @@ function App() {
           targetLanguage={targetLanguage}
           sourceLanguage={sourceLanguage}
           hotkey={hotkey}
+          soundEnabled={soundEnabled}
           ref={recorderRef}
           onTranscriptionComplete={handleTranscriptionComplete}
         />

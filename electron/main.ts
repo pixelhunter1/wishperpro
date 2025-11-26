@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain, clipboard, globalShortcut, Menu, screen } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { initDatabase, saveTranscription, getTranscriptions, saveApiKey, getApiKey, saveHotkey, getHotkey, deleteTranscription, clearAllTranscriptions, saveGptModel, getGptModel, saveWhisperModel, getWhisperModel, saveOverlayPosition, getOverlayPosition, saveSourceLanguage, getSourceLanguage } from './db';
+import { initDatabase, saveTranscription, getTranscriptions, saveApiKey, getApiKey, saveHotkey, getHotkey, deleteTranscription, clearAllTranscriptions, saveGptModel, getGptModel, saveWhisperModel, getWhisperModel, saveOverlayPosition, getOverlayPosition, saveSourceLanguage, getSourceLanguage, toggleFavorite, updateTranscription, saveSoundEnabled, getSoundEnabled } from './db';
 import { transcribeAudio, processText } from './openai';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -468,6 +468,114 @@ ipcMain.handle('clear-all-transcriptions', async () => {
   }
 });
 
+ipcMain.handle('toggle-favorite', async (_event, id: number) => {
+  try {
+    const isFavorite = toggleFavorite(id);
+    return { success: true, isFavorite };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+ipcMain.handle('update-transcription', async (_event, data: { id: number; finalText: string }) => {
+  try {
+    updateTranscription(data.id, data.finalText);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+ipcMain.handle('export-transcriptions', async (_event, format: 'txt' | 'json' | 'csv') => {
+  try {
+    const transcriptions = getTranscriptions(1000); // Get all transcriptions
+    let content: string;
+    let filename: string;
+
+    const now = new Date().toISOString().slice(0, 10);
+
+    switch (format) {
+      case 'json':
+        content = JSON.stringify(transcriptions, null, 2);
+        filename = `wishperpro-export-${now}.json`;
+        break;
+      case 'csv':
+        const headers = 'ID,Date,Original Text,Final Text,Language,Mode,Favorite\n';
+        const rows = transcriptions.map(t =>
+          `${t.id},"${t.date}","${t.originalText.replace(/"/g, '""')}","${t.finalText.replace(/"/g, '""')}","${t.language}","${t.mode}",${t.favorite}`
+        ).join('\n');
+        content = headers + rows;
+        filename = `wishperpro-export-${now}.csv`;
+        break;
+      case 'txt':
+      default:
+        content = transcriptions.map(t =>
+          `[${t.date}] (${t.mode === 'correct' ? 'Corrected' : 'Translated to ' + t.language})${t.favorite ? ' ⭐' : ''}\n${t.finalText}\n`
+        ).join('\n---\n\n');
+        filename = `wishperpro-export-${now}.txt`;
+        break;
+    }
+
+    // Use dialog to save file
+    const { dialog } = await import('electron');
+    const result = await dialog.showSaveDialog({
+      defaultPath: filename,
+      filters: [
+        { name: format.toUpperCase(), extensions: [format] }
+      ]
+    });
+
+    if (result.canceled || !result.filePath) {
+      return { success: false, error: 'Export cancelled' };
+    }
+
+    const fs = await import('fs/promises');
+    await fs.writeFile(result.filePath, content, 'utf-8');
+
+    return { success: true, filePath: result.filePath };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+ipcMain.handle('validate-api-key', async (_event, apiKey: string) => {
+  try {
+    const OpenAI = (await import('openai')).default;
+    const openai = new OpenAI({ apiKey });
+
+    // Make a minimal API call to validate the key
+    await openai.models.list();
+
+    return { success: true, valid: true };
+  } catch (error) {
+    const errorMessage = (error as Error).message;
+    if (errorMessage.includes('401') || errorMessage.includes('Incorrect API key')) {
+      return { success: true, valid: false, error: 'Invalid API key' };
+    }
+    return { success: false, error: errorMessage };
+  }
+});
+
+ipcMain.handle('show-notification', async (_event, data: { title: string; body: string }) => {
+  try {
+    const { Notification } = await import('electron');
+
+    if (Notification.isSupported()) {
+      const notification = new Notification({
+        title: data.title,
+        body: data.body,
+        silent: false
+      });
+      notification.show();
+      return { success: true };
+    } else {
+      return { success: false, error: 'Notifications not supported' };
+    }
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
 ipcMain.handle('save-hotkey', async (_event, hotkey: string) => {
   try {
     saveHotkey(hotkey);
@@ -570,6 +678,24 @@ ipcMain.handle('get-source-language', async () => {
   try {
     const language = getSourceLanguage();
     return { success: true, language };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+ipcMain.handle('save-sound-enabled', async (_event, enabled: boolean) => {
+  try {
+    saveSoundEnabled(enabled);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+});
+
+ipcMain.handle('get-sound-enabled', async () => {
+  try {
+    const enabled = getSoundEnabled();
+    return { success: true, enabled };
   } catch (error) {
     return { success: false, error: (error as Error).message };
   }

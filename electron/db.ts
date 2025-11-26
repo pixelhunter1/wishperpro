@@ -11,6 +11,7 @@ export interface TranscriptionRecord {
   finalText: string;
   language: string;
   mode: string;
+  favorite: boolean;
 }
 
 export const initDatabase = () => {
@@ -35,9 +36,18 @@ export const initDatabase = () => {
       original_text TEXT NOT NULL,
       final_text TEXT NOT NULL,
       language TEXT NOT NULL,
-      mode TEXT NOT NULL
+      mode TEXT NOT NULL,
+      favorite INTEGER DEFAULT 0
     )
   `);
+
+  // Migration: Add favorite column if it doesn't exist
+  try {
+    db.exec(`ALTER TABLE transcriptions ADD COLUMN favorite INTEGER DEFAULT 0`);
+    console.log('Added favorite column to transcriptions table');
+  } catch {
+    // Column already exists, ignore
+  }
 
   console.log('Database initialized at:', dbPath);
 };
@@ -93,18 +103,36 @@ export const getTranscriptions = (limit: number = 50): TranscriptionRecord[] => 
       original_text as originalText,
       final_text as finalText,
       language,
-      mode
+      mode,
+      favorite
     FROM transcriptions
-    ORDER BY date DESC
+    ORDER BY favorite DESC, date DESC
     LIMIT ?
   `);
 
-  return stmt.all(limit) as TranscriptionRecord[];
+  const rows = stmt.all(limit) as Array<Omit<TranscriptionRecord, 'favorite'> & { favorite: number }>;
+  return rows.map(row => ({ ...row, favorite: row.favorite === 1 }));
 };
 
 export const deleteTranscription = (id: number): void => {
   const stmt = db.prepare('DELETE FROM transcriptions WHERE id = ?');
   stmt.run(id);
+};
+
+export const toggleFavorite = (id: number): boolean => {
+  const getStmt = db.prepare('SELECT favorite FROM transcriptions WHERE id = ?');
+  const row = getStmt.get(id) as { favorite: number } | undefined;
+  const newValue = row?.favorite === 1 ? 0 : 1;
+
+  const updateStmt = db.prepare('UPDATE transcriptions SET favorite = ? WHERE id = ?');
+  updateStmt.run(newValue, id);
+
+  return newValue === 1;
+};
+
+export const updateTranscription = (id: number, finalText: string): void => {
+  const stmt = db.prepare('UPDATE transcriptions SET final_text = ? WHERE id = ?');
+  stmt.run(finalText, id);
 };
 
 export const clearAllTranscriptions = (): void => {
@@ -173,4 +201,18 @@ export const getSourceLanguage = (): string => {
   const stmt = db.prepare('SELECT value FROM settings WHERE key = ?');
   const row = stmt.get('source_language') as { value: string } | undefined;
   return row?.value || 'pt'; // Default to Portuguese for backward compatibility
+};
+
+export const saveSoundEnabled = (enabled: boolean): void => {
+  const stmt = db.prepare(`
+    INSERT OR REPLACE INTO settings (key, value)
+    VALUES (?, ?)
+  `);
+  stmt.run('sound_enabled', enabled ? '1' : '0');
+};
+
+export const getSoundEnabled = (): boolean => {
+  const stmt = db.prepare('SELECT value FROM settings WHERE key = ?');
+  const row = stmt.get('sound_enabled') as { value: string } | undefined;
+  return row?.value !== '0'; // Default to true (enabled)
 };

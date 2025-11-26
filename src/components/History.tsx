@@ -3,7 +3,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { Copy, Trash2 } from 'lucide-react';
+import { Copy, Trash2, Star, Pencil, Check, X, Download } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface TranscriptionRecord {
   id: number;
@@ -12,6 +18,7 @@ interface TranscriptionRecord {
   finalText: string;
   language: string;
   mode: string;
+  favorite: boolean;
 }
 
 export interface HistoryHandle {
@@ -21,6 +28,8 @@ export interface HistoryHandle {
 export const History = forwardRef<HistoryHandle>(function History(_props, ref) {
   const [transcriptions, setTranscriptions] = useState<TranscriptionRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editText, setEditText] = useState('');
 
   const loadTranscriptions = async () => {
     try {
@@ -71,6 +80,62 @@ export const History = forwardRef<HistoryHandle>(function History(_props, ref) {
     } catch (error) {
       console.error('Error deleting transcription:', error);
       toast.error('Error deleting transcription');
+    }
+  };
+
+  const toggleFavorite = async (id: number) => {
+    try {
+      const result = await window.electronAPI.toggleFavorite(id);
+      if (result.success) {
+        toast.success(result.isFavorite ? 'Added to favorites!' : 'Removed from favorites');
+        loadTranscriptions();
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      toast.error('Error updating favorite');
+    }
+  };
+
+  const startEditing = (transcription: TranscriptionRecord) => {
+    setEditingId(transcription.id);
+    setEditText(transcription.finalText);
+  };
+
+  const cancelEditing = () => {
+    setEditingId(null);
+    setEditText('');
+  };
+
+  const saveEdit = async (id: number) => {
+    try {
+      const result = await window.electronAPI.updateTranscription({ id, finalText: editText });
+      if (result.success) {
+        toast.success('Transcription updated!');
+        setEditingId(null);
+        setEditText('');
+        loadTranscriptions();
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error('Error updating transcription:', error);
+      toast.error('Error updating transcription');
+    }
+  };
+
+  const exportHistory = async (format: 'txt' | 'json' | 'csv') => {
+    try {
+      const result = await window.electronAPI.exportTranscriptions(format);
+      if (result.success) {
+        toast.success(`Exported to ${result.filePath}`);
+      } else if (result.error !== 'Export cancelled') {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error('Error exporting history:', error);
+      toast.error('Error exporting history');
     }
   };
 
@@ -138,10 +203,31 @@ export const History = forwardRef<HistoryHandle>(function History(_props, ref) {
             </CardDescription>
           </div>
           {transcriptions.length > 0 && (
-            <Button variant="outline" size="sm" onClick={clearAll} className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10">
-              <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-              Clear All
-            </Button>
+            <div className="flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8">
+                    <Download className="h-3.5 w-3.5 mr-1.5" />
+                    Export
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => exportHistory('txt')}>
+                    Export as TXT
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => exportHistory('json')}>
+                    Export as JSON
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => exportHistory('csv')}>
+                    Export as CSV
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button variant="outline" size="sm" onClick={clearAll} className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10">
+                <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                Clear All
+              </Button>
+            </div>
           )}
         </div>
       </CardHeader>
@@ -168,6 +254,16 @@ export const History = forwardRef<HistoryHandle>(function History(_props, ref) {
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => toggleFavorite(transcription.id)}
+                        className="h-6 w-6 -ml-1"
+                      >
+                        <Star
+                          className={`h-3.5 w-3.5 ${transcription.favorite ? 'fill-yellow-500 text-yellow-500' : 'text-muted-foreground'}`}
+                        />
+                      </Button>
                       <Badge
                         variant={transcription.mode === 'correct' ? 'default' : 'secondary'}
                         className="text-xs px-2 py-0.5"
@@ -183,28 +279,71 @@ export const History = forwardRef<HistoryHandle>(function History(_props, ref) {
                         {formatDate(transcription.date)}
                       </span>
                     </div>
-                    <p className="text-sm text-foreground leading-relaxed">
-                      {transcription.finalText}
-                    </p>
+                    {editingId === transcription.id ? (
+                      <div className="space-y-2">
+                        <textarea
+                          value={editText}
+                          onChange={(e) => setEditText(e.target.value)}
+                          className="w-full min-h-[80px] p-2 text-sm border rounded-md bg-background resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+                          autoFocus
+                        />
+                        <div className="flex gap-1">
+                          <Button
+                            size="sm"
+                            onClick={() => saveEdit(transcription.id)}
+                            className="h-7 px-2 text-xs"
+                          >
+                            <Check className="h-3 w-3 mr-1" />
+                            Save
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={cancelEditing}
+                            className="h-7 px-2 text-xs"
+                          >
+                            <X className="h-3 w-3 mr-1" />
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-foreground leading-relaxed">
+                        {transcription.finalText}
+                      </p>
+                    )}
                   </div>
-                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => copyToClipboard(transcription.finalText)}
-                      className="h-7 w-7"
-                    >
-                      <Copy className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => deleteItem(transcription.id)}
-                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
+                  {editingId !== transcription.id && (
+                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => startEditing(transcription)}
+                        className="h-7 w-7"
+                        title="Edit"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => copyToClipboard(transcription.finalText)}
+                        className="h-7 w-7"
+                        title="Copy"
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => deleteItem(transcription.id)}
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                        title="Delete"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

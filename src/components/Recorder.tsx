@@ -9,6 +9,7 @@ interface RecorderProps {
   targetLanguage: string;
   sourceLanguage: string;
   hotkey: string;
+  soundEnabled: boolean;
   onTranscriptionComplete?: () => void;
 }
 
@@ -28,7 +29,30 @@ const formatHotkey = (hotkey: string): string => {
     .replace('+', '+');
 };
 
-export const Recorder = forwardRef<RecorderHandle, RecorderProps>(({ mode, targetLanguage, sourceLanguage, hotkey, onTranscriptionComplete }, ref) => {
+// Play a success beep sound using Web Audio API
+const playSuccessBeep = () => {
+  try {
+    const audioContext = new AudioContext();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    oscillator.frequency.value = 800; // Hz
+    oscillator.type = 'sine';
+
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.2);
+  } catch (error) {
+    console.warn('[RECORDER] Could not play beep:', error);
+  }
+};
+
+export const Recorder = forwardRef<RecorderHandle, RecorderProps>(({ mode, targetLanguage, sourceLanguage, hotkey, soundEnabled, onTranscriptionComplete }, ref) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [transcribedText, setTranscribedText] = useState('');
@@ -288,6 +312,11 @@ export const Recorder = forwardRef<RecorderHandle, RecorderProps>(({ mode, targe
       // Auto-paste text where the cursor is positioned
       console.log('[RECORDER] Auto-pasting text to active window');
       const pasteResult = await window.electronAPI.pasteToActiveWindow(processResult.text);
+
+      // Play success sound if enabled
+      if (soundEnabled) {
+        playSuccessBeep();
+      }
 
       if (pasteResult.success) {
         toast.success('✓ Transcription completed and pasted automatically!');

@@ -18,16 +18,19 @@ interface SettingsProps {
   setTargetLanguage: (lang: string) => void;
   sourceLanguage: string;
   setSourceLanguage: (lang: string) => void;
+  soundEnabled: boolean;
+  setSoundEnabled: (enabled: boolean) => void;
   onHotkeyChange?: (hotkey: string) => void;
 }
 
-export function Settings({ mode, setMode, targetLanguage, setTargetLanguage, sourceLanguage, setSourceLanguage, onHotkeyChange }: SettingsProps) {
+export function Settings({ mode, setMode, targetLanguage, setTargetLanguage, sourceLanguage, setSourceLanguage, soundEnabled, setSoundEnabled, onHotkeyChange }: SettingsProps) {
   const [apiKey, setApiKey] = useState('');
   const [hotkey, setHotkey] = useState('');
   const [gptModel, setGptModel] = useState('gpt-4o');
   const [whisperModel, setWhisperModel] = useState('whisper-1');
   const [isRecordingHotkey, setIsRecordingHotkey] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isValidating, setIsValidating] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -81,9 +84,25 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage, sou
         return;
       }
 
+      // Validate API key with OpenAI
+      setIsValidating(true);
+      toast.info('Validating API key...');
+
+      const validateResult = await window.electronAPI.validateApiKey(apiKey);
+
+      if (!validateResult?.success) {
+        throw new Error(validateResult?.error || 'Validation failed');
+      }
+
+      if (!validateResult.valid) {
+        toast.error('Invalid API key - please check and try again');
+        return;
+      }
+
+      // Key is valid, save it
       const result = await window.electronAPI.saveApiKey(apiKey);
       if (result?.success) {
-        toast.success('API Key saved successfully!');
+        toast.success('API Key validated and saved!');
       } else {
         throw new Error(result?.error || 'Unknown error');
       }
@@ -91,6 +110,8 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage, sou
       console.error('Error saving API key:', error);
       const errorMessage = error instanceof Error ? error.message : 'Error saving API Key';
       toast.error(errorMessage);
+    } finally {
+      setIsValidating(false);
     }
   };
 
@@ -180,6 +201,22 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage, sou
     }
   };
 
+  const handleSoundToggle = async () => {
+    try {
+      const newValue = !soundEnabled;
+      setSoundEnabled(newValue);
+      const result = await window.electronAPI.saveSoundEnabled(newValue);
+      if (result?.success) {
+        toast.success(newValue ? 'Sound enabled' : 'Sound disabled');
+      } else {
+        throw new Error(result?.error || 'Unknown error');
+      }
+    } catch (error) {
+      console.error('Error saving sound setting:', error);
+      toast.error('Error saving sound setting');
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* API Key */}
@@ -195,8 +232,8 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage, sou
             disabled={isLoading}
             className="h-8 text-sm"
           />
-          <Button onClick={saveApiKey} disabled={isLoading || !apiKey} size="sm" className="h-8 px-3 text-xs">
-            Save
+          <Button onClick={saveApiKey} disabled={isLoading || isValidating || !apiKey} size="sm" className="h-8 px-3 text-xs">
+            {isValidating ? 'Validating...' : 'Save'}
           </Button>
         </div>
       </div>
@@ -327,6 +364,24 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage, sou
             </SelectContent>
           </Select>
         </div>
+      </div>
+
+      <div className="h-px bg-border" />
+
+      {/* Sound Settings */}
+      <div className="flex items-center justify-between">
+        <div className="space-y-0.5">
+          <Label className="text-sm font-medium">Sound Notification</Label>
+          <p className="text-xs text-muted-foreground">Play a beep when transcription completes</p>
+        </div>
+        <Button
+          variant={soundEnabled ? "default" : "outline"}
+          size="sm"
+          onClick={handleSoundToggle}
+          className="h-8 px-3 text-xs"
+        >
+          {soundEnabled ? 'On' : 'Off'}
+        </Button>
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('electronAPI', {
   saveApiKey: (apiKey) => ipcRenderer.invoke('save-api-key', apiKey),
   getApiKey: () => ipcRenderer.invoke('get-api-key'),
+  validateApiKey: (apiKey) => ipcRenderer.invoke('validate-api-key', apiKey),
   saveHotkey: (hotkey) => ipcRenderer.invoke('save-hotkey', hotkey),
   getHotkey: () => ipcRenderer.invoke('get-hotkey'),
   saveGptModel: (model) => ipcRenderer.invoke('save-gpt-model', model),
@@ -18,6 +19,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getTranscriptions: () => ipcRenderer.invoke('get-transcriptions'),
   deleteTranscription: (id) => ipcRenderer.invoke('delete-transcription', id),
   clearAllTranscriptions: () => ipcRenderer.invoke('clear-all-transcriptions'),
+  toggleFavorite: (id) => ipcRenderer.invoke('toggle-favorite', id),
+  updateTranscription: (data) => ipcRenderer.invoke('update-transcription', data),
+  exportTranscriptions: (format) => ipcRenderer.invoke('export-transcriptions', format),
+  showNotification: (data) => ipcRenderer.invoke('show-notification', data),
   onToggleRecording: (callback) => {
     ipcRenderer.on('toggle-recording', callback);
     // Return cleanup function to remove listener

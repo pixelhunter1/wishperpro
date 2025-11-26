@@ -28,6 +28,7 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage, sou
   const [whisperModel, setWhisperModel] = useState('whisper-1');
   const [isRecordingHotkey, setIsRecordingHotkey] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isValidating, setIsValidating] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -81,9 +82,25 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage, sou
         return;
       }
 
+      // Validate API key with OpenAI
+      setIsValidating(true);
+      toast.info('Validating API key...');
+
+      const validateResult = await window.electronAPI.validateApiKey(apiKey);
+
+      if (!validateResult?.success) {
+        throw new Error(validateResult?.error || 'Validation failed');
+      }
+
+      if (!validateResult.valid) {
+        toast.error('Invalid API key - please check and try again');
+        return;
+      }
+
+      // Key is valid, save it
       const result = await window.electronAPI.saveApiKey(apiKey);
       if (result?.success) {
-        toast.success('API Key saved successfully!');
+        toast.success('API Key validated and saved!');
       } else {
         throw new Error(result?.error || 'Unknown error');
       }
@@ -91,6 +108,8 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage, sou
       console.error('Error saving API key:', error);
       const errorMessage = error instanceof Error ? error.message : 'Error saving API Key';
       toast.error(errorMessage);
+    } finally {
+      setIsValidating(false);
     }
   };
 
@@ -195,8 +214,8 @@ export function Settings({ mode, setMode, targetLanguage, setTargetLanguage, sou
             disabled={isLoading}
             className="h-8 text-sm"
           />
-          <Button onClick={saveApiKey} disabled={isLoading || !apiKey} size="sm" className="h-8 px-3 text-xs">
-            Save
+          <Button onClick={saveApiKey} disabled={isLoading || isValidating || !apiKey} size="sm" className="h-8 px-3 text-xs">
+            {isValidating ? 'Validating...' : 'Save'}
           </Button>
         </div>
       </div>

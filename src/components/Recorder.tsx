@@ -291,11 +291,21 @@ export const Recorder = forwardRef<RecorderHandle, RecorderProps>(({ mode, targe
 
       if (pasteResult.success) {
         toast.success('✓ Transcription completed and pasted automatically!');
+        // Show native notification
+        window.electronAPI.showNotification({
+          title: 'WishperPro',
+          body: 'Transcription completed and pasted!'
+        });
       } else {
         // Fallback to clipboard if auto-paste fails
         console.warn('[RECORDER] Auto-paste failed, falling back to clipboard:', pasteResult.error);
         await window.electronAPI.copyToClipboard(processResult.text);
         toast.success('✓ Transcription completed and copied to clipboard!');
+        // Show native notification
+        window.electronAPI.showNotification({
+          title: 'WishperPro',
+          body: 'Transcription completed and copied to clipboard!'
+        });
       }
 
       // Notify parent that transcription is complete (to refresh history)

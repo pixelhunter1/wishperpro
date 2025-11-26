@@ -63,7 +63,7 @@ function App() {
       }
 
       const soundResult = await window.electronAPI.getSoundEnabled();
-      if (soundResult.success) {
+      if (soundResult.success && soundResult.enabled !== undefined) {
         setSoundEnabled(soundResult.enabled);
       }
     };
